@@ -1,9 +1,14 @@
-[gd_scene load_steps=5 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=10 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="1_c7s6e"]
-[ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://map.gd" id="1_wijl4"]
+[ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://scripts/map.gd" id="1_wijl4"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="3_e0an3"]
 [ext_resource type="PackedScene" uid="uid://bcfxoeuah1slf" path="res://rain_system.tscn" id="4_p5pve"]
+[ext_resource type="Script" uid="uid://2r81c838wwhe" path="res://scripts/world_generator.gd" id="5_gqbix"]
+[ext_resource type="Script" uid="uid://bgoy7uljh6g1l" path="res://scripts/time_system.gd" id="6_oysan"]
+[ext_resource type="Script" uid="uid://lxvu6yqalklj" path="res://scripts/rain_controller.gd" id="7_sb2pt"]
+[ext_resource type="Script" uid="uid://ct23e1gb8hsc5" path="res://scripts/lighting_system.gd" id="8_0t07s"]
+[ext_resource type="Script" uid="uid://ckr7c4rk8j5ds" path="res://scripts/player_spawner.gd" id="9_6qsgm"]
 
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
@@ -18,3 +23,22 @@ tile_set = ExtResource("1_c7s6e")
 [node name="GlowManager" type="Node2D" parent="."]
 
 [node name="RainSystem" parent="." instance=ExtResource("4_p5pve")]
+
+[node name="WorldGenerator" type="Node" parent="."]
+script = ExtResource("5_gqbix")
+
+[node name="TimeSystem" type="Node" parent="."]
+script = ExtResource("6_oysan")
+
+[node name="RainController" type="Node" parent="."]
+script = ExtResource("7_sb2pt")
+
+[node name="LightingSystem" type="Node" parent="."]
+script = ExtResource("8_0t07s")
+
+[node name="PlayerSpawner" type="Node" parent="."]
+script = ExtResource("9_6qsgm")
+
+[node name="Label" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
