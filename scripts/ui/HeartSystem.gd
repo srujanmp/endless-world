@@ -62,15 +62,39 @@ func update_hearts_ui():
 # PUBLIC API
 # ==================================================
 func damage(amount := 1):
-	current_hearts = clamp(current_hearts - amount, 0, max_hearts)
-	update_hearts_ui()
+	for i in range(amount):
+		if current_hearts <= 0:
+			return
+
+		current_hearts -= 1
+
+		var heart := hearts_container.get_child(current_hearts) as TextureRect
+		var tween := create_tween()
+
+		tween.tween_property(heart, "modulate:a", 0.0, 0.4)
+		tween.tween_callback(func():
+			heart.texture = heart_empty
+			heart.modulate.a = 1.0
+		)
 
 	if current_hearts == 0:
 		player_died()
 
+
 func heal(amount := 1):
-	current_hearts = clamp(current_hearts + amount, 0, max_hearts)
-	update_hearts_ui()
+	for i in range(amount):
+		if current_hearts >= max_hearts:
+			return
+
+		var heart := hearts_container.get_child(current_hearts) as TextureRect
+		heart.texture = heart_full
+		heart.modulate.a = 0.0
+
+		var tween := create_tween()
+		tween.tween_property(heart, "modulate:a", 1.0, 0.3)
+
+		current_hearts += 1
+
 
 func player_died():
 	print("Player died!")

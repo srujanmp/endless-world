@@ -1,4 +1,5 @@
 extends Node
+@onready var jersey_font: FontFile = load("res://Jersey10-Regular.ttf")
 
 # ---------------- DAY / NIGHT ----------------
 enum TimeOfDay { DAY, NIGHT }
@@ -101,13 +102,19 @@ func create_clock_ui():
 	clock_label = Label.new()
 	canvas.add_child(clock_label)
 
+	# apply font
+	clock_label.add_theme_font_override("font", jersey_font)
+	clock_label.add_theme_font_size_override("font_size", 40)
+	clock_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+
 	clock_label.anchor_right = 1
 	clock_label.anchor_bottom = 1
 	clock_label.offset_right = -20
 	clock_label.offset_bottom = -20
 	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	clock_label.add_theme_font_size_override("font_size", 18)
+
 
 func update_clock_text():
 	var hour := game_hour

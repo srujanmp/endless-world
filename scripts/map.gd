@@ -11,6 +11,8 @@ extends Node2D
 @onready var tilemap: TileMapLayer = $TileMap
 @onready var hearts: HeartSystem = $HeartSystem
 
+var score_label: Label
+
 # ================= TILE INFO =================
 const TILE_NAMES := {
 	Vector2i(0, 0): "Grass",
@@ -53,10 +55,13 @@ func _ready():
 	create_bubble_ui()
 	create_bubble_timer()
 	create_tile_damage_timer()
+	
+	create_score_ui()
 
 # ==================================================
 func _process(_delta):
 	update_player_tile_info()
+	update_score_label()
 
 # ==================================================
 # TILE INFO UI
@@ -68,10 +73,25 @@ func create_tile_info_ui():
 	tile_info_label = Label.new()
 	ui.add_child(tile_info_label)
 
-	tile_info_label.position = Vector2(
-		get_viewport().get_visible_rect().size.x - 200,
-		60
-	)
+	# anchor bottom-left
+	tile_info_label.anchor_left = 0
+	tile_info_label.anchor_top = 1
+	tile_info_label.anchor_right = 0
+	tile_info_label.anchor_bottom = 1
+
+	# give it size + offset
+	tile_info_label.offset_left = 20
+	tile_info_label.offset_top = -40
+	tile_info_label.offset_right = 200
+	tile_info_label.offset_bottom = -20
+
+	tile_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	tile_info_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+
+	# debug safety (optional)
+	tile_info_label.text = "Tile: Grass"
+
+
 
 # ==================================================
 # WATER BUBBLES UI
@@ -157,6 +177,7 @@ func update_player_tile_info():
 # ==================================================
 func enter_water():
 	in_water = true
+	player.in_water = true
 	bubbles_left = MAX_BUBBLES
 	bubble_container.visible = true
 	update_bubbles()
@@ -164,6 +185,7 @@ func enter_water():
 
 func exit_water():
 	in_water = false
+	player.in_water = false 
 	bubble_timer.stop()
 	bubble_container.visible = false
 	bubbles_left = MAX_BUBBLES
@@ -184,13 +206,58 @@ func _on_bubble_tick():
 
 func update_bubbles():
 	for i in range(bubble_container.get_child_count()):
-		bubble_container.get_child(i).visible = i < bubbles_left
+		var bubble := bubble_container.get_child(i) as TextureRect
+
+		if i < bubbles_left:
+			# bubble should be visible
+			if not bubble.visible:
+				bubble.visible = true
+				bubble.modulate.a = 0.0
+
+				var tween := create_tween()
+				tween.tween_property(bubble, "modulate:a", 1.0, 0.3)
+		else:
+			# bubble should disappear
+			if bubble.visible:
+				var tween := create_tween()
+				tween.tween_property(bubble, "modulate:a", 0.0, 0.5)
+				tween.tween_callback(func():
+					bubble.visible = false
+				)
+
+func create_score_ui():
+	var canvas := CanvasLayer.new()
+	add_child(canvas)
+
+	score_label = Label.new()
+	canvas.add_child(score_label)
+
+	# Load font
+	var font: FontFile = load("res://Jersey10-Regular.ttf")
+
+
+	# Apply font
+	score_label.add_theme_font_override("font", font)
+	score_label.add_theme_font_size_override("font_size", 40)
+	score_label.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	score_label.position = Vector2(20, 20)
+	score_label.text = "Score: %d" % Global.score
+
+
+func update_score_label():
+	if score_label:
+		score_label.text = "Score: %d" % Global.score
+
+func add_score(amount: int):
+	Global.add_score(amount)
+	update_score_label()
 
 # ==================================================
 # TEST INPUT
 # ==================================================
 func _input(event):
 	if event.is_action_pressed("ui_accept"):
-		hearts.damage(1)
+		add_score(10)
 	if event.is_action_pressed("ui_cancel"):
-		hearts.heal(1)
+		add_score(-10)

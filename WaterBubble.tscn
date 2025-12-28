@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://d2meyxqb3jfc1"]
+
+[ext_resource type="Texture2D" uid="uid://did8k08skig62" path="res://assets/ui/bubble.png" id="1_ifdh0"]
+[ext_resource type="Script" uid="uid://cibu1lnn5u08o" path="res://scripts/water_bubbles/WaterBubble.gd" id="2_546wj"]
+
+[node name="Sprite2D" type="Sprite2D"]
+z_index = 1
+texture = ExtResource("1_ifdh0")
+script = ExtResource("2_546wj")

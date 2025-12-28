@@ -13,6 +13,14 @@ extends CharacterBody2D
 
 @onready var sprite := $AnimatedSprite2D
 
+@export var bubble_scene := preload("res://WaterBubble.tscn")
+@export var bubble_spawn_rate := 0.6  # seconds
+
+@onready var bubble_spawner := $WaterBubbleSpawner
+
+var bubble_timer := 0.0
+
+
 var in_water := false        # SET FROM map.gd
 var sink_px := 0.0
 var base_sprite_pos := Vector2.ZERO
@@ -36,6 +44,15 @@ func _physics_process(delta):
 		sink_px = min(max_sink_px, sink_px + sink_in_speed * delta)
 	else:
 		sink_px = max(0.0, sink_px - sink_out_speed * delta)
+		
+	# 🫧 DROWNING BUBBLES
+	if in_water:
+		bubble_timer -= delta
+		if bubble_timer <= 0.0:
+			spawn_water_bubble()
+			bubble_timer = bubble_spawn_rate
+	else:
+		bubble_timer = 0.0
 
 	# VISUAL SINK (POSITION ONLY)
 	sprite.position = base_sprite_pos + Vector2(0, sink_px)
@@ -87,3 +104,16 @@ func set_idle_frame():
 		sprite.animation = "walk_down" if last_dir.y > 0 else "walk_up"
 
 	sprite.frame = 1
+
+
+func spawn_water_bubble():
+	var bubble := bubble_scene.instantiate()
+	get_parent().add_child(bubble)
+
+	# spawn near head
+	var offset := Vector2(
+		randf_range(-6, 6),
+		-12 + randf_range(-4, 2)
+	)
+
+	bubble.global_position = bubble_spawner.global_position + offset

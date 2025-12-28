@@ -15,6 +15,10 @@ run/main_scene="uid://bkmc8uu120p54"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Global="*res://scripts/Global.gd"
+
 [filesystem]
 
 import/blender/enabled=false
