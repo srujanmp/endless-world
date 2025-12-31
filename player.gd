@@ -87,9 +87,6 @@ func update_depth():
 	var feet_y: float = global_position.y + rect.extents.y
 	z_index = int(feet_y/4)
 
-	# 🧪 DEBUG (uncomment if needed)
-	print("PLAYER feet_y:", feet_y, "z:", z_index)
-
 # ==================================================
 # 🎨 WATER TINT
 # ==================================================

@@ -28,6 +28,9 @@ var target_light_color  : Color
 # ---------------- CLOCK UI ----------------
 var clock_label : Label
 
+# ---------------- FLOWER SPAWNER ----------------
+@onready var flower_spawner := get_parent().get_node("FlowerSpawner")
+
 # ==================================================
 # INIT
 # ==================================================
@@ -59,6 +62,18 @@ func _process(delta):
 	)
 
 	get_parent().modulate = current_light_color
+	update_flower_lighting()
+
+# ==================================================
+# FLOWER LIGHTING
+# ==================================================
+func update_flower_lighting():
+	if flower_spawner == null:
+		return
+
+	for child in flower_spawner.get_children():
+		if child is Sprite2D:
+			child.modulate = current_light_color
 
 # ==================================================
 # TIME LOGIC (UNCHANGED)
