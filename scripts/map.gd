@@ -178,7 +178,7 @@ func create_tile_damage_timer():
 # ==================================================
 func update_player_tile_info():
 	var cell := tilemap.local_to_map(
-		tilemap.to_local(player_shape.global_position)
+		tilemap.to_local(player_shape.global_position-Vector2(0,16))
 	)
 
 	var atlas := tilemap.get_cell_atlas_coords(cell)
