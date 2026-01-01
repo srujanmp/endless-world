@@ -6,6 +6,7 @@ extends Node2D
 @onready var lighting := $LightingSystem
 @onready var spawner := $PlayerSpawner
 @onready var flower_spawner := $FlowerSpawner
+@onready var joystick := $JoyStickUI/VirtualJoystick
 
 @onready var answer_popup: AnswerPopup = $AnswerPopup
 @export var well_scene: PackedScene
@@ -114,6 +115,8 @@ func _ready():
 	tasks.hint_collected.connect(func():
 		riddle_ui.unlock_next_hint()
 	)
+
+	joystick.modulate.a = 0.3
 	
 func spawn_wells() -> void:
 	if wells_spawned:

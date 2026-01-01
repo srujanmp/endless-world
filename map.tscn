@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=20 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="1_c7s6e"]
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://scripts/map.gd" id="1_wijl4"]
@@ -18,6 +18,7 @@
 [ext_resource type="Script" uid="uid://crb5l7rvldjbb" path="res://scripts/riddleui/HintBulb.gd" id="14_wbpbn"]
 [ext_resource type="Texture2D" uid="uid://dvh14cywlfrfr" path="res://assets/ui/hints_bulb.png" id="15_wbpbn"]
 [ext_resource type="PackedScene" uid="uid://dpqtvtf5uxnjn" path="res://answer_popup.tscn" id="17_a6rn7"]
+[ext_resource type="PackedScene" uid="uid://dmr0fcamx7t56" path="res://addons/virtual_joystick/virtual_joystick_scene.tscn" id="19_bssq0"]
 
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
@@ -105,3 +106,14 @@ layout_mode = 2
 spawn_radius = 100.0
 
 [node name="AnswerPopup" parent="." instance=ExtResource("17_a6rn7")]
+
+[node name="JoyStickUI" type="CanvasLayer" parent="."]
+
+[node name="VirtualJoystick" parent="JoyStickUI" instance=ExtResource("19_bssq0")]
+z_index = 3
+anchors_preset = -1
+offset_left = 100.0
+offset_top = -260.0
+offset_right = 260.0
+offset_bottom = -20.0
+scale = Vector2(0.8, 0.8)
