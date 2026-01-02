@@ -112,8 +112,15 @@ func _on_well_interacted():
 func _on_riddle_generated(data: Dictionary) -> void:
 	current_solution = str(data["solution"]).strip_edges().to_lower()
 	riddle_ui.setup_riddle(data)
-	tasks.spawn_hints(data["hints"].size(), player.global_position)
 	
+	# Updated call: Pass count, tilemap, border, width, and height
+	tasks.spawn_hints(
+		data["hints"].size(), 
+		tilemap, 
+		world.water_border, 
+		world.total_width, 
+		world.total_height
+	)
 
 func _process(_delta):
 	update_player_tile_info()

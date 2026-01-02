@@ -13,7 +13,7 @@ const DIRT = Vector2i(1, 0)
 
 func spawn_player_at_center():
 	# 1. Target the exact center coordinate requested
-	var center_tile = Vector2i(70, 70)
+	var center_tile = Vector2i(280, 280)
 	
 	# 2. Safety: Force a small landing pad of land at the center
 	# This ensures the player never spawns in water/lava

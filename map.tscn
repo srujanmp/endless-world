@@ -25,7 +25,7 @@
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_r5om4"]
 
 [node name="Map" type="Node2D"]
-scale = Vector2(0.5, 0.5)
+scale = Vector2(2, 2)
 script = ExtResource("1_wijl4")
 
 [node name="Player" parent="." instance=ExtResource("3_e0an3")]
@@ -160,7 +160,6 @@ theme_override_font_sizes/font_size = 25
 text = "loading.."
 
 [node name="Tasks" parent="." instance=ExtResource("13_6qsgm")]
-spawn_radius = 100.0
 
 [node name="AnswerPopup" parent="." instance=ExtResource("17_a6rn7")]
 
