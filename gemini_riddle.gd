@@ -56,7 +56,7 @@ Structure:
 }
 
 Rules:
-- Fantasy adventure game style
+- Technical question
 - No markdown
 - No explanation
 - Valid JSON only

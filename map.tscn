@@ -134,7 +134,7 @@ offset_bottom = 123.0
 grow_horizontal = 2
 theme_override_fonts/font = ExtResource("18_r5om4")
 theme_override_font_sizes/font_size = 25
-text = "XXXXXXXXXXXXXX"
+text = "Loading Question..."
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -149,6 +149,7 @@ offset_bottom = 11.5
 grow_vertical = 2
 theme_override_fonts/font = ExtResource("18_r5om4")
 theme_override_font_sizes/font_size = 25
+text = "loading.."
 
 [node name="Tasks" parent="." instance=ExtResource("13_6qsgm")]
 spawn_radius = 100.0
