@@ -5,6 +5,8 @@ extends Control
 @onready var level_label := $PlayerPanel/StatsVBox/LevelLabel
 @onready var start_button := $StartButton
 @onready var topic_input: LineEdit = $TopicInput
+@onready var joystick_ui := $JoyStickUI/VirtualJoystick
+
 
 var selected_topic: String = ""
 
@@ -14,6 +16,8 @@ func _ready():
 	level_label.text = "🧭 Level: %d" % Global.level
 
 	start_button.pressed.connect(_on_start_pressed)
+	joystick_ui.modulate.a = 0.3  
+	
 
 func _on_start_pressed():
 	selected_topic = topic_input.text.strip_edges()

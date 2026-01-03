@@ -1,10 +1,11 @@
-[gd_scene load_steps=8 format=4 uid="uid://bkmc8uu120p54"]
+[gd_scene load_steps=9 format=4 uid="uid://bkmc8uu120p54"]
 
 [ext_resource type="Script" uid="uid://cuhg1onp8ukty" path="res://HomeScreen.gd" id="1_iapcu"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="2_16mhu"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="2_ksj1l"]
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="3_16mhu"]
 [ext_resource type="Texture2D" uid="uid://cr64qub4rmcnk" path="res://stock-vector-grey-dotted-world-map-vector-illustration-2392252911.jpg" id="4_psypl"]
+[ext_resource type="PackedScene" uid="uid://qlpy3iu78nw2" path="res://joy_stick_ui.tscn" id="6_3272g"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ksj1l"]
 bg_color = Color(0, 0, 0, 0.48235294)
@@ -28,15 +29,11 @@ offset_bottom = 40.0
 
 [node name="TitleLabel" type="Label" parent="."]
 z_index = 1
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = 201.0
-offset_top = 81.0
-offset_right = 1249.0
-offset_bottom = 246.0
-grow_horizontal = 2
+layout_mode = 0
+offset_left = 1156.0
+offset_top = 285.0
+offset_right = 1838.0
+offset_bottom = 427.0
 theme_override_colors/font_color = Color(1, 0.29337206, 0, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -50,10 +47,10 @@ horizontal_alignment = 1
 [node name="StartButton" type="Button" parent="."]
 z_index = 1
 layout_mode = 0
-offset_left = 1759.0
-offset_top = 466.0
-offset_right = 1942.0
-offset_bottom = 543.0
+offset_left = 1352.0
+offset_top = 631.0
+offset_right = 1535.0
+offset_bottom = 708.0
 pivot_offset = Vector2(0, -60)
 theme_override_colors/font_color = Color(1, 0.29337206, 0, 1)
 theme_override_colors/font_focus_color = Color(1, 0.2716998, 0, 1)
@@ -68,10 +65,10 @@ text = " START "
 z_index = 1
 layout_mode = 1
 anchors_preset = -1
-offset_left = 2209.0
-offset_top = 197.0
-offset_right = 2209.0
-offset_bottom = 197.0
+offset_left = 1068.0
+offset_top = 450.0
+offset_right = 1068.0
+offset_bottom = 450.0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_ksj1l")
 
 [node name="StatsVBox" type="VBoxContainer" parent="PlayerPanel"]
@@ -118,7 +115,7 @@ tile_set = ExtResource("3_16mhu")
 
 [node name="Player" parent="." instance=ExtResource("2_16mhu")]
 z_index = 2
-position = Vector2(1965, 346)
+position = Vector2(1436, 506)
 scale = Vector2(1.5, 1.5)
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
@@ -131,11 +128,13 @@ texture = ExtResource("4_psypl")
 
 [node name="TopicInput" type="LineEdit" parent="."]
 layout_mode = 0
-offset_left = 1614.0
-offset_top = 405.0
-offset_right = 2114.0
-offset_bottom = 465.0
+offset_left = 1212.0
+offset_top = 570.0
+offset_right = 1712.0
+offset_bottom = 630.0
 theme_override_fonts/font = ExtResource("2_ksj1l")
 theme_override_font_sizes/font_size = 35
 placeholder_text = "Enter topic (e.g., Arrays, Python, Loops)"
 alignment = 1
+
+[node name="JoyStickUI" parent="." instance=ExtResource("6_3272g")]
