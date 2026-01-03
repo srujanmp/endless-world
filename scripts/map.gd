@@ -312,7 +312,7 @@ func add_score(amount: int):
 # ==================================================
 func _on_player_died():
 	var messages = ["💙 You tried your best!", "🌊 The world was tough today!", "🔥 Nice run, adventurer!", "✨ You'll do even better next time!"]
-	death_label.text = "%s\nScore: %d" % [messages.pick_random(), Global.score]
+	death_label.text = "%s\nScore: %d\nSolution was %s" % [messages.pick_random(), Global.score,current_solution] 
 	death_overlay.visible = true
 	death_bg.modulate.a = 0.0
 	death_label.modulate.a = 0.0

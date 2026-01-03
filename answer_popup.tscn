@@ -51,11 +51,13 @@ text = "SUBMIT"
 
 [node name="CloseButton" type="Button" parent="Panel"]
 layout_mode = 1
-anchors_preset = 1
+anchors_preset = -1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -64.0
-offset_bottom = 39.0
+offset_left = -152.0
+offset_top = 90.0
+offset_right = -92.0
+offset_bottom = 150.0
 grow_horizontal = 0
 theme_override_colors/font_color = Color(0.8745098, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.2509804, 0.22745098, 1)

@@ -81,7 +81,7 @@ Structure:
 }
 
 Rules:
-- Technical question
+- The question must be related to the topic: """ + Global.selected_topic + """
 - No markdown
 - No explanation
 - Valid JSON only
