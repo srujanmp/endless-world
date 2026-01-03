@@ -148,8 +148,32 @@ func spawn_wells(parent_map: Node) -> void:
 						tilemap.set_cell(tile_pos + Vector2i(x, y), SRC, GRASS)
 
 			var well = well_scene.instantiate()
+			# --------- WELL COLLISION + DEBUG ---------
+			var body := StaticBody2D.new()
+
+			var shape := CollisionShape2D.new()
+			var rect := RectangleShape2D.new()
+			rect.size = Vector2(30, 20)
+			shape.shape = rect
+			body.add_child(shape)
+
+			#var debug_box := ColorRect.new()
+			#debug_box.size = rect.size
+			#debug_box.color = Color(0, 1, 0, 0.35)
+			#debug_box.position = -rect.size / 2
+			#body.add_child(debug_box)
+
+			# ↓ move collision lower (adjust value as needed)
+			body.position = Vector2(0, 30)
+
+			well.add_child(body)
+			# ------------------------------------------
+
 			tilemap.add_child(well)
 			well.position = tilemap.map_to_local(tile_pos)
+			
+			# 🔑 SAME depth sorting as trees (based on base)
+			well.z_index = int(well.global_position.y / 4.0+10)
 
 			if parent_map.has_method("_on_well_interacted"):
 				well.interact.connect(parent_map._on_well_interacted)
