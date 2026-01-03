@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://m8ecdgwgf0j"
-path="res://.godot/imported/tree_jungle.png-e3dcba11d56e1221da709d9eaeb212b8.ctex"
+uid="uid://btujir5mlwljn"
+path="res://.godot/imported/middle_lane_tree2.png-86f650e3627a22378ddd8337b95d4a72.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/trees/tree_jungle.png"
-dest_files=["res://.godot/imported/tree_jungle.png-e3dcba11d56e1221da709d9eaeb212b8.ctex"]
+source_file="res://assets/trees/middle_lane_tree2.png"
+dest_files=["res://.godot/imported/middle_lane_tree2.png-86f650e3627a22378ddd8337b95d4a72.ctex"]
 
 [params]
 

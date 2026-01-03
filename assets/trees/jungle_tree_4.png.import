@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dpckphba15upe"
-path="res://.godot/imported/tree_megaoak.png-5430ad3519b2e7528cb1dcd318751fa8.ctex"
+uid="uid://bhiffejrag84e"
+path="res://.godot/imported/jungle_tree_4.png-cce8f92471a92da8a96fa5a6f4baa479.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/trees/tree_megaoak.png"
-dest_files=["res://.godot/imported/tree_megaoak.png-5430ad3519b2e7528cb1dcd318751fa8.ctex"]
+source_file="res://assets/trees/jungle_tree_4.png"
+dest_files=["res://.godot/imported/jungle_tree_4.png-cce8f92471a92da8a96fa5a6f4baa479.ctex"]
 
 [params]
 

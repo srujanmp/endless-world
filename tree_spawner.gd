@@ -62,7 +62,7 @@ func spawn_trees() -> void:
 		tree.global_position = tilemap.to_global(tile_local)
 
 		# 🌲 Trees are bigger than flowers
-		tree.scale = Vector2(2.8, 2.8)
+		tree.scale = Vector2(1,1)
 
 		# Small random rotation for natural look
 		tree.rotation = randf_range(-0.05, 0.05)
@@ -70,26 +70,49 @@ func spawn_trees() -> void:
 		# 🔑 Depth sorting based on trunk/base
 		tree.z_index = int(tree.global_position.y / 4.0)
 
-		# --------- HITBOX (ONLY ADDITION) ---------
-		var area := StaticBody2D.new()
-		var shape := CollisionShape2D.new()
-		var rect := RectangleShape2D.new()
-		rect.size = Vector2(20, 20)
-		shape.shape = rect
 
-		area.position = Vector2(
-			tex.get_width() / 2-40,
-			tex.get_height() - 10 -60
-		)
+		# --------- HITBOX GENERATION ---------
+		var img = tex.get_image()
+		var img_w = img.get_width()
+		var img_h = img.get_height()
+		
+		# Define how high from the bottom of the sprite the collision should be
+		var scan_height = 25
+		var scan_region = Rect2i(0, img_h - scan_height, img_w, scan_height)
+		var bottom_slice = img.get_region(scan_region)
+		
+		var bitmap = BitMap.new()
+		bitmap.create_from_image_alpha(bottom_slice)
+		
+		# Convert the alpha of the trunk into actual polygon data
+		var polygons = bitmap.opaque_to_polygons(Rect2i(0, 0, img_w, scan_height), 2.0)
+		
+		var static_body := StaticBody2D.new()
+		# Position the body at the start of the scan region relative to the sprite offset
+		static_body.position = tree.offset + Vector2(0, img_h - scan_height+30)
+		
+		for poly in polygons:
+			var collision_poly = CollisionPolygon2D.new()
+			collision_poly.polygon = poly
+			static_body.add_child(collision_poly)
 
-		area.add_child(shape)
-		tree.add_child(area)
-		# ------------------------------------------
+			## --- DEBUG VISUAL (Optional: Remove in production) ---
+			#var debug_line = Line2D.new()
+			#var closed_poly = Array(poly)
+			#closed_poly.append(poly[0]) # Close the loop
+			#debug_line.points = PackedVector2Array(closed_poly)
+			#debug_line.width = 1.0
+			#debug_line.default_color = Color(1, 0, 0, 1) # Semi-transparent red
+			#
+			## Move the line up by 30 pixels
+			#debug_line.position.y -= 30 
+			#
+			#collision_poly.add_child(debug_line)
 
 		add_child(tree)
 
 
-		tree.add_child(area)
+		tree.add_child(static_body)
 
 # ==================================================
 # LOAD TREE TEXTURES

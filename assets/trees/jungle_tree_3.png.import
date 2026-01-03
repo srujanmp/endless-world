@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qtiykqwiw8e1"
-path="res://.godot/imported/tree_darkoak.png-6b6ffbfd968a5f2aaa6c0a435fd5b828.ctex"
+uid="uid://clbb1jcl7ol8"
+path="res://.godot/imported/jungle_tree_3.png-60738eb0e6e5ad06a1c9afb4cb396835.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/trees/tree_darkoak.png"
-dest_files=["res://.godot/imported/tree_darkoak.png-6b6ffbfd968a5f2aaa6c0a435fd5b828.ctex"]
+source_file="res://assets/trees/jungle_tree_3.png"
+dest_files=["res://.godot/imported/jungle_tree_3.png-60738eb0e6e5ad06a1c9afb4cb396835.ctex"]
 
 [params]
 

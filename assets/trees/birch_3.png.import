@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://crhllma1yxtpr"
-path="res://.godot/imported/tree_acacia.png-020d2fca6f1524378216ce171b5a8d0f.ctex"
+uid="uid://bqmyyhupir5wj"
+path="res://.godot/imported/birch_3.png-7e4437ab066a4ad02ee0446228588fd4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/trees/tree_acacia.png"
-dest_files=["res://.godot/imported/tree_acacia.png-020d2fca6f1524378216ce171b5a8d0f.ctex"]
+source_file="res://assets/trees/birch_3.png"
+dest_files=["res://.godot/imported/birch_3.png-7e4437ab066a4ad02ee0446228588fd4.ctex"]
 
 [params]
 
