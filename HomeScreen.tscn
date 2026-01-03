@@ -128,3 +128,14 @@ z_index = 1
 position = Vector2(1331, 709)
 scale = Vector2(1.7689999, 1.9665517)
 texture = ExtResource("4_psypl")
+
+[node name="TopicInput" type="LineEdit" parent="."]
+layout_mode = 0
+offset_left = 1614.0
+offset_top = 405.0
+offset_right = 2114.0
+offset_bottom = 465.0
+theme_override_fonts/font = ExtResource("2_ksj1l")
+theme_override_font_sizes/font_size = 35
+placeholder_text = "Enter topic (e.g., Arrays, Python, Loops)"
+alignment = 1
