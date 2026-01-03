@@ -8,8 +8,8 @@ extends Node
 # ---------------- SETTINGS ----------------
 const GRASS: Vector2i = Vector2i(0, 0)
 
-const TOTAL_TREES: int = 40        # 🌲 fewer than flowers
-const TREE_TYPES: int = 6          # number of tree variations
+const TOTAL_TREES: int = 20        # 🌲 fewer than flowers
+const TREE_TYPES: int = 4          # number of tree variations
 const TREE_PATH: String = "res://assets/trees/"
 
 # ==================================================
@@ -54,7 +54,10 @@ func spawn_trees() -> void:
 		var tree := Sprite2D.new()
 		tree.texture = tex
 
-		# 🔑 Place tree at tile base (trunk on ground)
+		# ✅ Bottom-center origin (tree base)
+		tree.centered = false
+		tree.offset = Vector2(-tex.get_width() / 2, -tex.get_height() + 10)
+
 		var tile_local: Vector2 = tilemap.map_to_local(cell)
 		tree.global_position = tilemap.to_global(tile_local)
 
@@ -65,9 +68,28 @@ func spawn_trees() -> void:
 		tree.rotation = randf_range(-0.05, 0.05)
 
 		# 🔑 Depth sorting based on trunk/base
-		tree.z_index = int(tree.global_position.y)
+		tree.z_index = int(tree.global_position.y / 4.0)
+
+		# --------- HITBOX (ONLY ADDITION) ---------
+		var area := StaticBody2D.new()
+		var shape := CollisionShape2D.new()
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(20, 20)
+		shape.shape = rect
+
+		area.position = Vector2(
+			tex.get_width() / 2-40,
+			tex.get_height() - 10 -60
+		)
+
+		area.add_child(shape)
+		tree.add_child(area)
+		# ------------------------------------------
 
 		add_child(tree)
+
+
+		tree.add_child(area)
 
 # ==================================================
 # LOAD TREE TEXTURES
