@@ -39,6 +39,8 @@ func open():
 	visible = true
 	index = 0
 	_show_slide(index)
+	# No need to start timer here if it's the first slide 
+	# and you want user to manual click, but keeping it per your original logic:
 	timer.start()
 
 func close():
@@ -47,18 +49,32 @@ func close():
 	visible = false
 
 func _show_slide(i: int):
-	var slide = slides[i]
+	# Update index
+	index = i
+	var slide = slides[index]
 
+	# Update Content
 	video.stop()
 	video.stream = load(slide["video"])
 	video.play()
-
 	text.text = slide["text"]
 
+	# --- Handle Button Visibility ---
+	# Hide left button if on first slide
+	left_btn.visible = (index > 0)
+	
+	# Hide right button if on last slide
+	right_btn.visible = (index < slides.size() - 1)
+	
+	# Restart timer for the new slide
+	timer.start()
+
 func _next():
-	index = (index + 1) % slides.size()
-	_show_slide(index)
+	if index < slides.size() - 1:
+		_show_slide(index + 1)
+	else:
+		timer.stop() # Stop auto-sliding at the end
 
 func _prev():
-	index = (index - 1 + slides.size()) % slides.size()
-	_show_slide(index)
+	if index > 0:
+		_show_slide(index - 1)
