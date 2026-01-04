@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 # ================= MOVEMENT =================
 @export var speed := 200.0
+@export var sprint_speed := 350.0  # 🏃 Added
 @export var water_speed_multiplier := 0.6
 
 # ================= DROWNING (PIXELS) =================
@@ -40,7 +41,8 @@ func _physics_process(delta):
 		Input.get_action_strength("ui_down") - Input.get_action_strength("ui_up")
 	)
 
-	var current_speed := speed
+	# 🏃 SPRINT LOGIC
+	var current_speed = sprint_speed if Input.is_action_pressed("sprint") else speed
 
 	# 🌊 WATER LOGIC
 	if in_water:

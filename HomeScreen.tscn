@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=4 uid="uid://bkmc8uu120p54"]
+[gd_scene load_steps=11 format=4 uid="uid://bkmc8uu120p54"]
 
 [ext_resource type="Script" uid="uid://cuhg1onp8ukty" path="res://HomeScreen.gd" id="1_iapcu"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="2_16mhu"]
@@ -6,12 +6,15 @@
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="3_16mhu"]
 [ext_resource type="Texture2D" uid="uid://cr64qub4rmcnk" path="res://stock-vector-grey-dotted-world-map-vector-illustration-2392252911.jpg" id="4_psypl"]
 [ext_resource type="PackedScene" uid="uid://qlpy3iu78nw2" path="res://joy_stick_ui.tscn" id="6_3272g"]
+[ext_resource type="PackedScene" uid="uid://clivw5ge2vyc" path="res://tutorialscene/TutorialButton.tscn" id="7_4d5n3"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ksj1l"]
 bg_color = Color(0, 0, 0, 0.48235294)
 corner_detail = 20
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ksj1l"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_4d5n3"]
 
 [node name="HomeScreen" type="Control"]
 layout_mode = 3
@@ -138,3 +141,18 @@ placeholder_text = "Enter topic (e.g., Arrays, Python, Loops)"
 alignment = 1
 
 [node name="JoyStickUI" parent="." instance=ExtResource("6_3272g")]
+
+[node name="TutorialButton" parent="JoyStickUI" instance=ExtResource("7_4d5n3")]
+modulate = Color(1, 1, 1, 0.8)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -38.0
+offset_top = -72.0
+offset_right = 341.0
+offset_bottom = 262.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_4d5n3")

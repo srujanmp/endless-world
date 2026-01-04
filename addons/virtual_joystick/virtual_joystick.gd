@@ -3,7 +3,7 @@ class_name VirtualJoystick
 extends Control
 
 ## A simple virtual joystick for touchscreens, with useful options.
-## Github: https://github.com/MarcoFazioRandom/Virtual-Joystick-Godot
+## Modified to include auto-sprint threshold logic.
 
 # EXPORTED VARIABLE
 
@@ -15,6 +15,9 @@ extends Control
 
 ## The max distance the tip can reach.
 @export_range(0, 500, 1) var clampzone_size : float = 75
+
+## 🏃 The percentage of the joystick distance (0.0 to 1.0) that triggers sprinting.
+@export_range(0.0, 1.0, 0.05) var sprint_threshold : float = 0.8
 
 enum Joystick_mode {
 	FIXED, ## The joystick doesn't move.
@@ -41,6 +44,7 @@ enum Visibility_mode {
 @export var action_right := "ui_right"
 @export var action_up := "ui_up"
 @export var action_down := "ui_down"
+@export var action_sprint := "sprint" # 🏃 Added: Sprint action name
 
 # PUBLIC VARIABLES
 
@@ -65,8 +69,6 @@ var _touch_index : int = -1
 # FUNCTIONS
 
 func _ready() -> void:
-	#if ProjectSettings.get_setting("input_devices/pointing/emulate_mouse_from_touch"):
-		#printerr("The Project Setting 'emulate_mouse_from_touch' should be set to False")
 	if not ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse"):
 		printerr("The Project Setting 'emulate_touch_from_mouse' should be set to True")
 	
@@ -141,6 +143,15 @@ func _update_joystick(touch_position: Vector2) -> void:
 		output = Vector2.ZERO
 	
 	if use_input_actions:
+		# 🏃 SPRINT THRESHOLD LOGIC
+		var stick_distance_percent = vector.length() / clampzone_size
+		if stick_distance_percent >= sprint_threshold:
+			if not Input.is_action_pressed(action_sprint):
+				Input.action_press(action_sprint)
+		else:
+			if Input.is_action_pressed(action_sprint):
+				Input.action_release(action_sprint)
+
 		# Release actions
 		if output.x >= 0 and Input.is_action_pressed(action_left):
 			Input.action_release(action_left)
@@ -169,6 +180,7 @@ func _reset():
 	_tip.position = _tip_default_position
 	# Release actions
 	if use_input_actions:
-		for action in [action_left, action_right, action_down, action_up]:
+		# 🏃 Include action_sprint in the reset loop
+		for action in [action_left, action_right, action_down, action_up, action_sprint]:
 			if Input.is_action_pressed(action):
 				Input.action_release(action)
