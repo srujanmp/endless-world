@@ -63,4 +63,4 @@ theme_override_colors/font_color = Color(0.8745098, 0, 0, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.2509804, 0.22745098, 1)
 theme_override_fonts/font = ExtResource("2_ddl3n")
 theme_override_font_sizes/font_size = 35
-text = "X"
+text = "CLOSE"
