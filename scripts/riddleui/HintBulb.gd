@@ -33,7 +33,7 @@ func set_on():
 	atlas.region = Rect2(
 		0,
 		0,
-		bulb_texture.get_width() / 2,
+		bulb_texture.get_width() / 2.0,
 		bulb_texture.get_height()
 	)
 
@@ -41,9 +41,9 @@ func set_on():
 func set_off():
 	is_on = false
 	atlas.region = Rect2(
-		bulb_texture.get_width() / 2,
+		bulb_texture.get_width() / 2.0,
 		0,
-		bulb_texture.get_width() / 2,
+		bulb_texture.get_width() / 2.0,
 		bulb_texture.get_height()
 	)
 

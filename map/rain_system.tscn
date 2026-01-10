@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://bcfxoeuah1slf"]
 
-[ext_resource type="Script" uid="uid://cu2i78dc2crk8" path="res://rain_system.gd" id="1_btfku"]
+[ext_resource type="Script" uid="uid://cu2i78dc2crk8" path="res://map/rain_system.gd" id="1_btfku"]
 [ext_resource type="Texture2D" uid="uid://wl5midecmcd7" path="res://assets/rain_drop.png" id="2_20ieq"]
 
 [node name="RainSystem" type="Node2D"]

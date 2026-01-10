@@ -18,7 +18,7 @@ func spawn_lava_lights():
 	for c in glow_manager.get_children():
 		c.queue_free()
 
-	var tile_size : Vector2 = Vector2(tilemap.tile_set.tile_size)
+	var _tile_size : Vector2 = Vector2(tilemap.tile_set.tile_size)
 
 	for x in width:
 		for y in height:

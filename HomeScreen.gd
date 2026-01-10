@@ -27,4 +27,4 @@ func _on_start_pressed():
 		selected_topic = "programming"
 	
 	Global.selected_topic = selected_topic
-	get_tree().change_scene_to_file("res://map.tscn")
+	get_tree().change_scene_to_file("res://map/map.tscn")

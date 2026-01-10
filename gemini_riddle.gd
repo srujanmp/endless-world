@@ -115,7 +115,7 @@ Rules:
 		_use_fallback()
 
 # =================================================
-func _on_response(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_response(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	print("HTTP:", response_code)
 	print("RAW RESPONSE:")
 	print(body.get_string_from_utf8())

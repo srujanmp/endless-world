@@ -8,7 +8,7 @@ var collected_hints: int = 0
 signal hint_collected
 signal all_hints_collected
 
-func spawn_hints(count: int, tilemap: TileMapLayer, water_border: int, width: int, height: int) -> void:
+func spawn_hints(_count: int, tilemap: TileMapLayer, water_border: int, width: int, height: int) -> void:
 	if hint_pickup_scene == null:
 		push_error("Tasks.spawn_hints: hint_pickup_scene is not assigned!")
 		return

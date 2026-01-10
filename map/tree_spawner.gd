@@ -56,7 +56,7 @@ func spawn_trees() -> void:
 
 		# ✅ Bottom-center origin (tree base)
 		tree.centered = false
-		tree.offset = Vector2(-tex.get_width() / 2, -tex.get_height() + 10)
+		tree.offset = Vector2(-tex.get_width() / 2.0, -tex.get_height() + 10)
 
 		var tile_local: Vector2 = tilemap.map_to_local(cell)
 		tree.global_position = tilemap.to_global(tile_local)
