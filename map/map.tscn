@@ -1,7 +1,8 @@
-[gd_scene load_steps=26 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=28 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://map/map.gd" id="1_iqbtl"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="2_81obp"]
+[ext_resource type="Script" uid="uid://1qj6pglanx3e" path="res://ai/DifficultyRL.gd" id="2_gw5x3"]
 [ext_resource type="Script" uid="uid://ccc36y8bo0jyy" path="res://map/flower_spawner.gd" id="3_gw5x3"]
 [ext_resource type="Script" uid="uid://q37t7m6c2agj" path="res://map/tree_spawner.gd" id="4_wwcqt"]
 [ext_resource type="TileSet" uid="uid://crg0orous800e" path="res://tile_set.tres" id="5_ofiht"]
@@ -23,6 +24,7 @@
 [ext_resource type="PackedScene" uid="uid://dpqtvtf5uxnjn" path="res://answer_popup.tscn" id="21_ikyq8"]
 [ext_resource type="PackedScene" uid="uid://qlpy3iu78nw2" path="res://joy_stick_ui.tscn" id="22_d6tlw"]
 [ext_resource type="PackedScene" uid="uid://clivw5ge2vyc" path="res://tutorialscene/TutorialButton.tscn" id="23_kkght"]
+[ext_resource type="Script" uid="uid://b3yik852ctwld" path="res://map/rl_overlay.gd" id="25_gw5x3"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_r5om4"]
 
@@ -31,6 +33,9 @@
 [node name="Map" type="Node2D"]
 scale = Vector2(2, 2)
 script = ExtResource("1_iqbtl")
+
+[node name="DifficultyRL" type="Node" parent="."]
+script = ExtResource("2_gw5x3")
 
 [node name="Player" parent="." instance=ExtResource("2_81obp")]
 
@@ -186,3 +191,25 @@ offset_bottom = 263.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_styles/normal = SubResource("StyleBoxEmpty_4sf5t")
+
+[node name="RLOverlay" type="CanvasLayer" parent="."]
+script = ExtResource("25_gw5x3")
+
+[node name="ToggleButton" type="TextureButton" parent="RLOverlay"]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Panel" type="Panel" parent="RLOverlay"]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBox" type="VBoxContainer" parent="RLOverlay/Panel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DifficultyLabel" type="Label" parent="RLOverlay/Panel/VBox"]
+layout_mode = 2
+
+[node name="QText" type="Label" parent="RLOverlay/Panel/VBox"]
+layout_mode = 2

@@ -65,6 +65,10 @@ func _ready() -> void:
 
 # =================================================
 func generate_riddle() -> void:
+	# DIFFICULTY FETCHING
+	var difficulty = get_node("/root/Map/DifficultyRL").choose_difficulty()
+	print(difficulty)
+	
 	if api_key.is_empty():
 		print("⚠️ LLM API key missing — using fallback riddle")
 		_use_fallback()
@@ -82,6 +86,7 @@ Structure:
 
 Rules:
 - The question must be related to the topic: """ + Global.selected_topic + """
+- Difficulty="""+difficulty+"""
 - No markdown
 - No explanation
 - Valid JSON only
@@ -117,8 +122,8 @@ Rules:
 # =================================================
 func _on_response(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	print("HTTP:", response_code)
-	print("RAW RESPONSE:")
-	print(body.get_string_from_utf8())
+	#print("RAW RESPONSE:")
+	#print(body.get_string_from_utf8())
 
 	if response_code != 200:
 		print("❌ Non-200 response, fallback")

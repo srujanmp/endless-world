@@ -36,6 +36,10 @@ func load_game():
 	print("✅ Save loaded")
 
 func delete_save():
+	if FileAccess.file_exists("user://difficulty_rl.json"):
+		DirAccess.remove_absolute("user://difficulty_rl.json")
+		
+		
 	var path := "user://save.json"
 
 	if FileAccess.file_exists(path):

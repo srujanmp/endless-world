@@ -67,6 +67,7 @@ func _on_submit():
 	print(user_answer + " " + correct_answer)
 
 	if user_answer == correct_answer:
+		$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
 		Global.end_game(true)
 		message.text = "🎉 VICTORY!"
 		
@@ -80,6 +81,7 @@ func _on_submit():
 		get_tree().change_scene_to_file("res://HomeScreen.tscn")
 
 	else:
+		$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
 		message.text = "❌ Try again"
 		hearts.damage(1)
 		input.text = ""
