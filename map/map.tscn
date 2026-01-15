@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3 uid="uid://dpbxblfybuwu6"]
+[gd_scene load_steps=30 format=3 uid="uid://dpbxblfybuwu6"]
 
 [ext_resource type="Script" uid="uid://b221v61dem8vf" path="res://map/map.gd" id="1_iqbtl"]
 [ext_resource type="PackedScene" uid="uid://olx1k0r0di2" path="res://player.tscn" id="2_81obp"]
@@ -27,6 +27,20 @@
 [ext_resource type="Script" uid="uid://b3yik852ctwld" path="res://map/rl_overlay.gd" id="25_gw5x3"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_r5om4"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw5x3"]
+bg_color = Color(0, 0, 0, 0.45600003)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wwcqt"]
+bg_color = Color(0, 0, 0, 0.5)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_4sf5t"]
 
@@ -154,6 +168,7 @@ offset_bottom = 123.0
 grow_horizontal = 2
 theme_override_fonts/font = ExtResource("19_n7j7o")
 theme_override_font_sizes/font_size = 25
+theme_override_styles/normal = SubResource("StyleBoxFlat_gw5x3")
 text = "Loading Question..."
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -169,6 +184,7 @@ offset_bottom = 11.5
 grow_vertical = 2
 theme_override_fonts/font = ExtResource("19_n7j7o")
 theme_override_font_sizes/font_size = 25
+theme_override_styles/normal = SubResource("StyleBoxFlat_wwcqt")
 text = "loading.."
 
 [node name="Tasks" parent="." instance=ExtResource("20_efawl")]

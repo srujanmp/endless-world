@@ -3,6 +3,8 @@ extends Node2D
 @onready var world := $WorldGenerator
 @onready var time := $TimeSystem
 @onready var rain := $RainController
+@onready var rain_system := $RainSystem
+
 @onready var lighting := $LightingSystem
 @onready var spawner := $PlayerSpawner
 @onready var flower_spawner := $FlowerSpawner
@@ -22,7 +24,7 @@ extends Node2D
 # 🔧 GAME SETTINGS
 # ==================================================
 @export var enable_rain: bool = true
-@export var TILE_SOURCE_ID: int = 0
+@export var TILE_SOURCE_ID: int = 2
 var current_solution: String = ""
 
 # ==================================================
@@ -69,10 +71,21 @@ var tile_damage_timer: Timer
 # ==================================================
 func _ready():
 	Global.start_game()
+	
 	# 🔧 APPLY SETTINGS
 	rain.rain_enabled = enable_rain
-	world.SRC = TILE_SOURCE_ID
-
+	world.SRC = randi() % 4
+	
+	if(world.SRC == 1):
+		rain_system.is_snow = true
+	else:
+		rain_system.is_snow = false
+		
+	if(world.SRC == 3):
+		rain.rain_enabled = false
+	else:
+		rain.rain_enabled = true
+		
 	# 🌍 WORLD SETUP
 	world.generate_world()
 	world.spawn_wells(self) 
@@ -113,6 +126,7 @@ func _on_well_interacted():
 	)
 
 func _on_riddle_generated(data: Dictionary) -> void:
+	
 	current_solution = str(data["solution"]).strip_edges().to_lower()
 	riddle_ui.setup_riddle(data)
 	

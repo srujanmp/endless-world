@@ -1,10 +1,24 @@
-[gd_resource type="TileSet" load_steps=5 format=3 uid="uid://crg0orous800e"]
+[gd_resource type="TileSet" load_steps=11 format=3 uid="uid://crg0orous800e"]
 
 [ext_resource type="Texture2D" uid="uid://du1w2j57rue4g" path="res://assets/default-tile.png" id="1_kfwk1"]
 [ext_resource type="Texture2D" uid="uid://vvo534whnx3e" path="res://assets/tile-testing.jpg" id="2_nq4aq"]
+[ext_resource type="Texture2D" uid="uid://t7icf1rl60jl" path="res://assets/snow-tile.png" id="3_1vrtm"]
+[ext_resource type="Texture2D" uid="uid://yiiec6xnrned" path="res://assets/desert-tile.png" id="4_iw1w7"]
+[ext_resource type="Texture2D" uid="uid://1aefxpjmhaol" path="res://assets/forest-tile.png" id="5_06xp3"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nq4aq"]
 texture = ExtResource("1_kfwk1")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_3ppxi"]
+texture = ExtResource("3_1vrtm")
 0:0/0 = 0
 1:0/0 = 0
 2:0/0 = 0
@@ -25,6 +39,31 @@ texture = ExtResource("2_nq4aq")
 2:1/0 = 0
 3:1/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5pofp"]
+texture = ExtResource("5_06xp3")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_qumku"]
+texture = ExtResource("4_iw1w7")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+
 [resource]
 sources/0 = SubResource("TileSetAtlasSource_nq4aq")
-sources/1 = SubResource("TileSetAtlasSource_1vrtm")
+sources/3 = SubResource("TileSetAtlasSource_qumku")
+sources/100 = SubResource("TileSetAtlasSource_1vrtm")
+sources/1 = SubResource("TileSetAtlasSource_3ppxi")
+sources/2 = SubResource("TileSetAtlasSource_5pofp")
