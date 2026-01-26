@@ -2,6 +2,22 @@
 extends Node
 
 const SAVE_PATH := "user://save.json"
+var rl: DifficultyRL
+var difficulty: String = "MEDIUM"
+
+func _ready():
+	load_game()
+	_init_rl()
+
+func _init_rl():
+	if rl != null and is_instance_valid(rl):
+		return
+	rl = DifficultyRL.new()
+	add_child(rl)
+	if rl.has_method("init_rl"):
+		rl.init_rl()
+	difficulty = rl.choose_difficulty()
+
 func save_game():
 	var data := {
 		"stats": stats,
@@ -36,18 +52,14 @@ func load_game():
 	print("✅ Save loaded")
 
 func delete_save():
-	if FileAccess.file_exists("user://difficulty_rl.json"):
-		DirAccess.remove_absolute("user://difficulty_rl.json")
-		
-		
-	var path := "user://save.json"
-
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
 		print("🗑️ Stats save deleted")
 	else:
 		print("⚠️ No save file found")
-		
+	reset_difficulty_model()
+	print("🧠 Difficulty RL reset done")
+
 func reset_all_stats():
 	# Reset lifetime stats
 	stats = {
@@ -71,9 +83,31 @@ func reset_all_stats():
 
 	# Delete saved file
 	delete_save()
-
+	
 	# Immediately write a clean save
+	reset_difficulty_model()
 	save_game()
+
+func get_difficulty() -> String:
+	_init_rl()
+	difficulty = rl.choose_difficulty()
+	return difficulty
+
+func update_difficulty(win: bool, hints_used: int):
+	_init_rl()
+	rl.give_feedback(win, hints_used)
+	difficulty = rl.current_diff
+
+func reset_difficulty_model():
+	if FileAccess.file_exists("user://difficulty_rl.json"):
+		DirAccess.remove_absolute("user://difficulty_rl.json")
+	if rl != null and is_instance_valid(rl):
+		rl.queue_free()
+	rl = DifficultyRL.new()
+	add_child(rl)
+	if rl.has_method("init_rl"):
+		rl.init_rl()
+	difficulty = rl.choose_difficulty()
 
 # ================= BASIC GAME DATA =================
 var selected_topic: String = "programming"
@@ -100,11 +134,6 @@ var stats := {
 		# "programming": { "played": 3, "wins": 2, "losses": 1, "time": 120 }
 	}
 }
-
-
-func _ready():
-	load_game()
-
 
 func reset_score():
 	score = 0
@@ -161,6 +190,7 @@ func end_game(win: bool):
 		stats.total_losses += 1
 		t.losses += 1
 		
+	update_difficulty(win, current_hint_count)
 	save_game()
 
 func _notification(what):
@@ -177,4 +207,5 @@ func stats_to_string() -> String:
 	s += "Total Score: %d\n" % stats.total_score
 	s += "Best Level: %d\n" % stats.best_level
 	s += "Current Topic: %s\n" % selected_topic
+	s += "Difficulty: %s\n" % difficulty
 	return s

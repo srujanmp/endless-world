@@ -7,11 +7,12 @@ extends CanvasLayer
 
 var rl
 var grid: GridContainer
+var close_btn: Button # Reference for our new close button
 
 func _ready():
-	rl = get_parent().get_node("DifficultyRL")
+	rl = Global.rl
 
-	# -------- BUTTON (Right Center) --------
+	# -------- MAIN TOGGLE BUTTON --------
 	btn.texture_normal = load("res://assets/rl.png")
 	btn.z_index = 1000
 	btn.anchor_left = 1.0
@@ -25,26 +26,32 @@ func _ready():
 	btn.modulate.a = 0.7
 	btn.pressed.connect(toggle)
 
-	# -------- PANEL (Below Button, Widened for Larger Font) --------
+	# -------- PANEL SETUP --------
 	panel.visible = false
 	panel.anchor_left = 1.0
 	panel.anchor_right = 1.0
 	panel.anchor_top = 0.5
 	panel.anchor_bottom = 0.5
-	
-	# offset_top starts below the button's bottom (32)
-	panel.offset_left = -340 # Increased width to prevent crowding
+	panel.offset_left = -340 
 	panel.offset_right = -10
-	panel.offset_top = 40 
-	panel.offset_bottom = 260 # Slightly taller to fit larger font rows
+	panel.offset_top = -200 
+	panel.offset_bottom = 350
 
-	# -------- UI ORGANIZATION --------
 	var vbox = $Panel/VBox
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_KEEP_SIZE, 12)
 	
+	# -------- NEW: CLOSE BUTTON --------
+	close_btn = Button.new()
+	close_btn.text = "CLOSE OVERLAY"
+	# Optional: Style the close button to match your theme
 	var font = load("res://Jersey10-Regular.ttf")
-	
-	# Header Styling (Larger)
+	close_btn.add_theme_font_override("font", font)
+	close_btn.pressed.connect(toggle) # Connect to same toggle function
+	vbox.add_child(close_btn) 
+	# Move to top of VBox so it's easy to find
+	vbox.move_child(close_btn, 0) 
+
+	# Header Styling
 	diff_label.add_theme_font_override("font", font)
 	diff_label.add_theme_font_size_override("font_size", 32)
 	
@@ -68,37 +75,57 @@ func _process(_d):
 	if panel.visible:
 		update_text()
 
+## Logic updated to hide 'btn' when panel is shown
 func toggle():
 	panel.visible = !panel.visible
+	# Hide the main button if panel is open, show it if panel is closed
+	btn.visible = !panel.visible 
+	
 	if panel.visible:
 		update_text()
 
 func update_text():
-	diff_label.text = "STATE: " + rl.last_difficulty.to_upper()
+	# ... (Rest of your update_text logic remains exactly the same)
+	diff_label.text = "DIFF: %s\nSTATE: %s\nACTION: %s" % [
+		rl.current_diff,
+		rl.prev_state,
+		rl.prev_action
+	]
 
-	# Refresh Grid
 	for child in grid.get_children():
 		child.queue_free()
 
 	var font = load("res://Jersey10-Regular.ttf")
-	for k in rl.DIFFICULTIES:
-		var action_lbl = Label.new()
-		var value_lbl = Label.new()
-		
-		# ML Table Formatting
-		action_lbl.text = "  a_%s" % k.to_lower()
-		value_lbl.text = "%.4f" % rl.q[k]
-		
-		# Larger Font for Table Rows
-		action_lbl.add_theme_font_override("font", font)
-		action_lbl.add_theme_font_size_override("font_size", 20) 
-		
-		value_lbl.add_theme_font_override("font", font)
-		value_lbl.add_theme_font_size_override("font_size", 20)
-		
-		# Alignment
-		value_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		value_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		
-		grid.add_child(action_lbl)
-		grid.add_child(value_lbl)
+	var states := ["BORING", "CHALLENGED", "TOO_HARD"]
+	
+	for st in states:
+		var st_lbl = Label.new()
+		st_lbl.text = "[ %s ]" % st
+		st_lbl.add_theme_font_override("font", font)
+		st_lbl.add_theme_font_size_override("font_size", 22)
+		st_lbl.modulate = Color(0.9, 0.9, 0.2)
+		grid.add_child(st_lbl)
+		grid.add_child(Label.new()) # Spacer
+
+		if not rl.q.has(st):
+			for a in rl.ACTIONS:
+				_add_row(a, "--", font)
+			continue
+
+		for a in rl.ACTIONS:
+			_add_row(a, "%.4f" % float(rl.q[st].get(a, 0.0)), font)
+
+# Helper to keep update_text clean
+func _add_row(action_name, value_text, font):
+	var action_lbl = Label.new()
+	var value_lbl = Label.new()
+	action_lbl.text = "  a_%s" % action_name.to_lower()
+	value_lbl.text = value_text
+	action_lbl.add_theme_font_override("font", font)
+	action_lbl.add_theme_font_size_override("font_size", 20)
+	value_lbl.add_theme_font_override("font", font)
+	value_lbl.add_theme_font_size_override("font_size", 20)
+	value_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	grid.add_child(action_lbl)
+	grid.add_child(value_lbl)
