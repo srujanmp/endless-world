@@ -2,100 +2,100 @@ extends CanvasLayer
 class_name AnswerPopup
 
 @onready var message: Label = $Panel/VBoxContainer/MessageLabel
-@onready var input: LineEdit = $Panel/VBoxContainer/AnswerInput
+@onready var options_container: VBoxContainer = $Panel/VBoxContainer/OptionsContainer
 @onready var submit: Button = $Panel/VBoxContainer/SubmitButton
 @onready var close_button: Button = $Panel/CloseButton
 
-var correct_answer: String = ""
+var correct_answer := ""
+var selected_answer := ""
 var hearts: HeartSystem
 var map_ref
 
+# =============================
 func _ready():
 	visible = false
 	submit.pressed.connect(_on_submit)
 	close_button.pressed.connect(close)
 
-	# 🚫 Prevent Enter key from submitting
-	input.gui_input.connect(_block_enter_key)
-
 # =============================
-# OPEN POPUP
+# OPEN POPUP WITH MCQs
 # =============================
-func open(solution: String, heart_system: HeartSystem, map):
+func open(solution: String, options: Array, heart_system: HeartSystem, map):
 	if solution.is_empty():
-		push_error("❌ AnswerPopup opened with EMPTY solution!")
+		push_error("❌ Empty correct answer")
 		return
 
 	visible = true
-	input.text = ""
-	message.text = "Enter your answer"
 	correct_answer = solution.to_lower()
+	selected_answer = ""
 	hearts = heart_system
 	map_ref = map
 
-	input.grab_focus()
+	message.text = "Choose the correct answer"
+
+	# Clear old options
+	for child in options_container.get_children():
+		child.queue_free()
+
+	# Create MCQ buttons
+	for opt in options:
+		var btn := Button.new()
+		btn.text = opt
+		btn.custom_minimum_size = Vector2(0, 55)
+		btn.pressed.connect(_on_option_selected.bind(btn, opt))
+		options_container.add_child(btn)
 
 # =============================
-# BLOCK ENTER KEY
+# OPTION SELECT
 # =============================
-func _block_enter_key(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
-			get_viewport().set_input_as_handled()
+func _on_option_selected(btn: Button, option_text: String):
+	selected_answer = option_text.to_lower()
+
+	# Reset all buttons
+	for b in options_container.get_children():
+		b.modulate = Color.WHITE
+
+	# Highlight selected
+	btn.modulate = Color(0.6, 1.0, 0.6)
 
 # =============================
-# ESC TO CLOSE
-# =============================
-func _input(event):
-	if not visible:
-		return
-
-	if event.is_action_pressed("ui_cancel"):
-		close()
-
-func close():
-	visible = false
-	input.text = ""
-	message.text = ""
-
-# =============================
-# SUBMIT LOGIC
+# SUBMIT ANSWER
 # =============================
 func _on_submit():
-	var user_answer := input.text.strip_edges().to_lower()
+	if selected_answer == "":
+		message.text = "⚠ Select an option"
+		return
 
-	print(user_answer + " " + correct_answer)
-
-	if user_answer == correct_answer:
+	if selected_answer == correct_answer:
 		$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
 		Global.end_game(true)
 
-		# 🎊 CONFETTI BLAST
 		spawn_confetti()
-
-		# 🎉 BIG VICTORY TEXT
 		message.text = "🎉 VICTORY!"
-		message.add_theme_font_size_override("font_size", 60)
 
 		Global.add_score(50)
-		Global.next_level()   # ⭐ LEVEL UP
+		Global.next_level()
 
 		await get_tree().create_timer(1.5).timeout
-		# # (Optional) reset font size so it doesn't affect reuse
-		# message.remove_theme_font_size_override("font_size")
 		close()
-		
-		# 🏠 GO BACK TO HOME
 		get_tree().change_scene_to_file("res://HomeScreen.tscn")
 
 	else:
 		$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
-		message.text = "❌ Try again"
+		message.text = "❌ Wrong Answer"
 		hearts.damage(1)
-		input.text = ""
 		await get_tree().create_timer(1.0).timeout
 		close()
 
+# =============================
+func close():
+	visible = false
+	selected_answer = ""
+	message.text = ""
+
+# =============================
+# CONFETTI (UNCHANGED)
+# =============================
 func spawn_confetti():
 	var viewport_size := get_viewport().get_visible_rect().size
 

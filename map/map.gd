@@ -20,12 +20,15 @@ extends Node2D
 @onready var riddle_ui: RiddleUI = $RiddleUI
 @onready var tasks: Tasks = $Tasks
 
+var current_solution: String = ""
+var current_options: Array = []   # ✅ ADD THIS
+
+
 # ==================================================
 # 🔧 GAME SETTINGS
 # ==================================================
 @export var enable_rain: bool = true
 @export var TILE_SOURCE_ID: int = 2
-var current_solution: String = ""
 
 # ==================================================
 # UI / DEATH
@@ -117,20 +120,24 @@ func _ready():
 
 	joystick.modulate.a = 0.3
 
-# Called by wells spawned via WorldGenerator
 func _on_well_interacted():
+	if current_options.is_empty():
+		push_error("❌ No MCQ options available")
+		return
+
 	answer_popup.open(
-		current_solution,
-		hearts,
+		current_solution,   # String
+		current_options,    # Array ✅ FROM GEMINI
+		hearts,             # HeartSystem
 		self
 	)
 
 func _on_riddle_generated(data: Dictionary) -> void:
-	
 	current_solution = str(data["solution"]).strip_edges().to_lower()
+	current_options = data.get("options", []).duplicate()
+
 	riddle_ui.setup_riddle(data)
-	
-	# Updated call: Pass count, tilemap, border, width, and height
+
 	tasks.spawn_hints(
 		data["hints"].size(), 
 		tilemap, 

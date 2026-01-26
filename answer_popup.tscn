@@ -36,18 +36,26 @@ text = "Yay!! u found the well type your answer below"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="AnswerInput" type="LineEdit" parent="Panel/VBoxContainer"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_ddl3n")
-theme_override_font_sizes/font_size = 30
-placeholder_text = "answer"
-alignment = 1
-
 [node name="SubmitButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_ddl3n")
 theme_override_font_sizes/font_size = 40
 text = "SUBMIT"
+
+[node name="OptionsContainer" type="VBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="OptionA" type="Button" parent="Panel/VBoxContainer/OptionsContainer"]
+layout_mode = 2
+
+[node name="OptionB" type="Button" parent="Panel/VBoxContainer/OptionsContainer"]
+layout_mode = 2
+
+[node name="OptionC" type="Button" parent="Panel/VBoxContainer/OptionsContainer"]
+layout_mode = 2
+
+[node name="OptionD" type="Button" parent="Panel/VBoxContainer/OptionsContainer"]
+layout_mode = 2
 
 [node name="CloseButton" type="Button" parent="Panel"]
 layout_mode = 1
