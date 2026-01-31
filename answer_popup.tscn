@@ -1,7 +1,9 @@
-[gd_scene load_steps=5 format=3 uid="uid://dpqtvtf5uxnjn"]
+[gd_scene load_steps=7 format=3 uid="uid://dpqtvtf5uxnjn"]
 
 [ext_resource type="Script" uid="uid://cw7pmsfdaakoc" path="res://answer_popup.gd" id="1_juwdi"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="2_ddl3n"]
+[ext_resource type="AudioStream" uid="uid://c4vnxjg8208ji" path="res://assets/audio/victory/VictorySmall.wav" id="3_mqpby"]
+[ext_resource type="AudioStream" uid="uid://dvlhfxpdy87b5" path="res://assets/audio/gameover.mp3" id="3_ws6o5"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ddl3n"]
 bg_color = Color(0.53333336, 0.53333336, 0.53333336, 0.70980394)
@@ -115,3 +117,11 @@ theme_override_colors/font_pressed_color = Color(1, 0.2509804, 0.22745098, 1)
 theme_override_fonts/font = ExtResource("2_ddl3n")
 theme_override_font_sizes/font_size = 35
 text = "CLOSE"
+
+[node name="VictorySound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_mqpby")
+volume_db = -20.0
+
+[node name="GameOverSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_ws6o5")
+volume_db = -10.0

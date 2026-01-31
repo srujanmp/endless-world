@@ -78,17 +78,16 @@ func _screen_shake():
 # PUBLIC API
 # ==================================================
 func damage(amount := 1):
-	_shake_camera()   # 🎥 WORLD SHAKE
-	_shake_hearts()   # ❤️ UI SHAKE
+	_shake_camera()
+	_shake_hearts()
 
 	for i in range(amount):
 		if current_hearts <= 0:
-			return
+			break
 
 		current_hearts -= 1
 
 		var heart := hearts_container.get_child(current_hearts) as TextureRect
-
 		var tween := create_tween()
 
 		tween.tween_property(heart, "modulate:a", 0.0, 0.4)
@@ -97,7 +96,7 @@ func damage(amount := 1):
 			heart.modulate.a = 1.0
 		)
 
-	if current_hearts == 0:
+	if current_hearts <= 0:
 		_emit_player_died()
 
 

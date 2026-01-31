@@ -279,12 +279,12 @@ func _call_groq_api(web_data_param: String) -> void:
 	var source_type := "internal_knowledge" if web_data_param.is_empty() else "web"
 	
 	var prompt := """
-	SYSTEM: You are a technical riddle creator. 
+	SYSTEM: You are a technical question creator. You must follow the Task exactly as written, recheck the conditions  
 	CRITICAL: The "solution" MUST be exactly one of the items in the "options" array.
 	%s
 
 	TASK:
-	1. Create a riddle about "%s". %s
+	1. Create a question about "%s". %s
 	2. The "solution" MUST be a single word.
 	3. Generate 4 "options" for the user to choose from.
 	4. CRITICAL: The "solution" MUST be exactly one of the items in the "options" array.
@@ -294,6 +294,7 @@ func _call_groq_api(web_data_param: String) -> void:
 	8. insert a new line if the question is longer than 10 words
 	9. keep question length less than 50 words
 	10.keep the output logically correct
+	11. if the topic is not academic related then question should be a riddle
 	
 	OUTPUT STRICT JSON:
 	{
@@ -308,7 +309,11 @@ func _call_groq_api(web_data_param: String) -> void:
 	print("[GeminiRiddle] Prompt length: %d characters" % prompt.length())
 	
 	var request_body := {
-		"model": "llama-3.1-8b-instant",
+		#"model": "llama-3.1-8b-instant",
+		#"model": "llama-3.3-70b-versatile",
+		"model": "openai/gpt-oss-120b",
+		
+		
 		"messages": [{"role": "user", "content": prompt}],
 		"temperature": 0.5,
 		"response_format": {"type": "json_object"}

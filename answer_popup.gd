@@ -5,6 +5,10 @@ class_name AnswerPopup
 @onready var submit: Button = $Panel/VBoxContainer/SubmitButton
 @onready var close_button: Button = $Panel/CloseButton
 
+@onready var victory_sound: AudioStreamPlayer = $VictorySound
+@onready var gameover_sound: AudioStreamPlayer = $GameOverSound
+
+
 # EXISTING OPTION BUTTONS (NO DYNAMIC CREATION)
 @onready var option_buttons: Array[Button] = [
 	$Panel/VBoxContainer/OptionsContainer/OptionA,
@@ -84,6 +88,8 @@ func _on_submit():
 
 		spawn_confetti()
 		message.text = "🎉 VICTORY!"
+		victory_sound.play()
+
 
 		Global.add_score(30)
 		Global.next_level()
@@ -94,6 +100,8 @@ func _on_submit():
 	else:
 		$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
 		message.text = "❌ Wrong Answer"
+		gameover_sound.play()
+
 		Global.add_score(-10)
 		hearts.damage(2)
 		await get_tree().create_timer(1.0).timeout
