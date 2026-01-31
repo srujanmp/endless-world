@@ -1,10 +1,11 @@
-[gd_scene load_steps=21 format=3 uid="uid://olx1k0r0di2"]
+[gd_scene load_steps=22 format=3 uid="uid://olx1k0r0di2"]
 
 [ext_resource type="Script" uid="uid://v6bppyt17khp" path="res://player.gd" id="1_onrkg"]
 [ext_resource type="Texture2D" uid="uid://0vme22iwwl51" path="res://assets/front-player.png" id="2_i3pqv"]
 [ext_resource type="Texture2D" uid="uid://c7al8mod06o6j" path="res://assets/player.png" id="2_onrkg"]
 [ext_resource type="Script" uid="uid://dia2khw6ash3t" path="res://CameraShake.gd" id="2_sweqy"]
 [ext_resource type="Texture2D" uid="uid://bpd52mc63ei4q" path="res://assets/glow.png" id="4_shadow"]
+[ext_resource type="Texture2D" uid="uid://l308r2dmhq1k" path="res://assets/trail.png" id="6_2hs0m"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hqtel"]
 size = Vector2(10.3125, 3)
@@ -165,3 +166,25 @@ attenuation = 1.5
 
 [node name="FootstepTimer" type="Timer" parent="."]
 wait_time = 0.35
+
+[node name="Trail" type="Line2D" parent="."]
+z_index = 2000
+width = 6.0
+default_color = Color(1, 1, 1, 0.25)
+joint_mode = 2
+begin_cap_mode = 2
+end_cap_mode = 2
+antialiased = true
+
+[node name="FootTrail" type="CPUParticles2D" parent="."]
+modulate = Color(1, 1, 1, 0.2)
+self_modulate = Color(1, 1, 1, 0.2)
+z_index = -1
+emitting = false
+amount = 25
+texture = ExtResource("6_2hs0m")
+lifetime = 0.5
+explosiveness = 0.9
+direction = Vector2(0, -1)
+gravity = Vector2(0, 0)
+scale_amount_min = 0.5

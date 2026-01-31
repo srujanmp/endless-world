@@ -25,6 +25,10 @@ extends CharacterBody2D
 @onready var footsteps: AudioStreamPlayer2D = $FootstepPlayer
 @onready var footstep_timer: Timer = $FootstepTimer
 
+@onready var foot_trail: CPUParticles2D = $FootTrail
+
+
+
 # ================= BUBBLES =================
 @export var bubble_scene := preload("res://WaterBubble.tscn")
 @export var bubble_spawn_rate := 0.6
@@ -51,6 +55,9 @@ func _ready():
 	camera.zoom = Vector2.ONE
 	load_footstep_sounds()
 	footstep_timer.timeout.connect(play_footstep)
+	
+	foot_trail.position = Vector2(0, 7) # near feet
+
 
 # ==================================================
 func load_footstep_sounds():
@@ -110,6 +117,13 @@ func _physics_process(delta):
 		stop_footsteps()
 
 	move_and_slide()
+	
+	# 🟤 Smoky walking marks
+	if dir != Vector2.ZERO:
+		foot_trail.emitting = true
+	else:
+		foot_trail.emitting = false
+
 
 	# 🔑 DEPTH SORT — MUST BE AFTER MOVE
 	update_depth()
