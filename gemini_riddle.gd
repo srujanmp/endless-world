@@ -45,17 +45,31 @@ var current_difficulty: String = ""
 var scrape_target_url: String = ""
 var web_data: String = ""
 
+var _log_queue: Array[String] = []
+var _log_timer: Timer
+@onready var log_label: Label = get_node_or_null("../RiddleUI/Log")
+
 signal riddle_generated(data: Dictionary)
 
 # =================================================
 func _ready() -> void:
+	# 1. SETUP TIMER FIRST
+	_log_timer = Timer.new()
+	_log_timer.wait_time = 3.0
+	_log_timer.one_shot = true
+	_log_timer.timeout.connect(_on_log_timer_timeout)
+	add_child(_log_timer)
+	if log_label: log_label.hide()
+
+	# 2. NOW YOU CAN CALL LOGS
 	print("[GeminiRiddle] Initializing...")
-	
+	add_log("Initializing...")
+
 	# Add HTTP nodes
 	add_child(http_search)
 	add_child(http_scrape)
 	add_child(http_groq)
-	
+
 	# Connect signals
 	http_search.request_completed.connect(_on_search_response)
 	http_scrape.request_completed.connect(_on_scrape_response)
@@ -71,7 +85,7 @@ func generate_riddle() -> void:
 	current_topic = Global.selected_topic if "selected_topic" in Global else "Programming"
 	
 	print("[GeminiRiddle] Requesting Riddle. Topic: %s | Difficulty: %s" % [current_topic, current_difficulty])
-	
+	add_log("Generating: %s (%s)" % [current_topic, current_difficulty])
 	# Start the scraping process
 	_resolve_topic_with_llm(current_topic)
 
@@ -129,6 +143,8 @@ func _scrape_universal(topic: String) -> void:
 		file.close()
 	
 	print("\n--- Searching Serper.dev for: %s ---" % topic)
+	add_log("Searching Web for: "+ topic)
+
 	
 	# Load API key from environment
 	var env := EnvLoader.load_env("res://.env")
@@ -203,6 +219,7 @@ func _on_search_response(_result, code, _headers, body) -> void:
 		return
 	
 	print("Scraping: %s" % scrape_target_url)
+	add_log("Scraping:"+ scrape_target_url)
 	
 	# Append to debug file
 	var file := FileAccess.open(DEBUG_FILE, FileAccess.READ_WRITE)
@@ -241,6 +258,7 @@ func _on_scrape_response(_result, code, _headers, body) -> void:
 	
 	# Now call Groq API with the web data
 	print("[GeminiRiddle] Scraped %d characters of text" % web_data.length())
+	add_log("Scraped %s chars" % str(web_data.length()))
 	_call_groq_api(web_data)
 
 # =================================================
@@ -327,6 +345,7 @@ func _call_groq_api(web_data_param: String) -> void:
 	print("current topic is: ",current_topic)
 	var effective_topic := resolved_search_topic if not resolved_search_topic.is_empty() else current_topic
 	print("sub topic chosen by llm : ",effective_topic)
+	add_log("current topic is: "+current_topic+"\nsub topic chosen by llm : "+effective_topic)
 	
 	var prompt := """
 	SYSTEM: You are a technical question creator. You must follow the Task exactly as written, recheck the conditions  
@@ -401,6 +420,8 @@ func _on_groq_response(_result, code, _headers, body) -> void:
 			if typeof(parsed) == TYPE_DICTIONARY and parsed.has("chosen_subtopic"):
 				resolved_search_topic = parsed["chosen_subtopic"]
 				print("[GeminiRiddle] Resolved search topic:", resolved_search_topic)
+				add_log("Resolved search topic: "+ resolved_search_topic)
+
 				_scrape_universal(resolved_search_topic)
 				return
 
@@ -464,6 +485,7 @@ func _use_fallback() -> void:
 
 # =================================================
 func _log_riddle_details(data: Dictionary) -> void:
+	add_log("Generated Question \nClick 🔎");
 	print("------------------------------------------")
 	print("[GeminiRiddle] DATA SOURCE: ", data.get("source", "unknown"))
 	print("QUESTION: ", data.get("riddle", "N/A"))
@@ -471,3 +493,22 @@ func _log_riddle_details(data: Dictionary) -> void:
 	print("ANSWER: ", data.get("solution", "N/A"))
 	print("FACT: ", data.get("fact_reference", "N/A"))
 	print("------------------------------------------")
+
+
+# ================= LOG SYSTEM =================
+func add_log(message: String) -> void:
+	_log_queue.append(message)
+	_process_log_queue()
+
+func _process_log_queue() -> void:
+	# Only show next log if timer isn't currently running (one after another)
+	if log_label and _log_timer.is_stopped() and not _log_queue.is_empty():
+		log_label.text = _log_queue.pop_front()
+		log_label.show()
+		_log_timer.start()
+
+func _on_log_timer_timeout() -> void:
+	if not _log_queue.is_empty():
+		_process_log_queue() # Show next in line
+	elif log_label:
+		log_label.hide() # No new logs, disappear
