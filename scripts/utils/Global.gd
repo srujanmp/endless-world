@@ -1,9 +1,16 @@
 # Global.gd (Autoload)
 extends Node
 
+enum QuestionType {
+	MCQ,
+	FILL_BLANK
+}
+
 const SAVE_PATH := "user://save.json"
 var rl: DifficultyRL
 var difficulty: String = "MEDIUM"
+var current_question_type: QuestionType = QuestionType.MCQ
+
 
 func _ready():
 	load_game()

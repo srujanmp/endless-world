@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://dpqtvtf5uxnjn"]
+[gd_scene load_steps=8 format=3 uid="uid://dpqtvtf5uxnjn"]
 
 [ext_resource type="Script" uid="uid://cw7pmsfdaakoc" path="res://answer_popup.gd" id="1_juwdi"]
 [ext_resource type="FontFile" uid="uid://08vndck327l2" path="res://Jersey10-Regular.ttf" id="2_ddl3n"]
@@ -17,6 +17,18 @@ corner_radius_top_right = 100
 corner_radius_bottom_right = 100
 corner_radius_bottom_left = 100
 shadow_color = Color(0, 0, 0, 0.43)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mqpby"]
+bg_color = Color(0.6, 0.6, 0.6, 0.52156866)
+border_width_left = 10
+border_width_top = 10
+border_width_right = 10
+border_width_bottom = 10
+border_color = Color(0, 0, 0, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ws6o5"]
 bg_color = Color(0.6267051, 0.10742133, 7.70092e-07, 0.9764706)
@@ -93,6 +105,18 @@ theme_override_font_sizes/font_size = 30
 theme_override_styles/normal = SubResource("StyleBoxFlat_ddl3n")
 theme_override_styles/hover = SubResource("StyleBoxFlat_ddl3n")
 text = "option 4"
+
+[node name="FillContainer" type="VBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="AnswerInput" type="LineEdit" parent="Panel/VBoxContainer/FillContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_ddl3n")
+theme_override_font_sizes/font_size = 30
+theme_override_styles/normal = SubResource("StyleBoxFlat_mqpby")
+theme_override_styles/read_only = SubResource("StyleBoxFlat_mqpby")
+theme_override_styles/focus = SubResource("StyleBoxFlat_mqpby")
+alignment = 1
 
 [node name="SubmitButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2

@@ -74,7 +74,8 @@ var tile_damage_timer: Timer
 # ==================================================
 func _ready():
 	Global.start_game()
-	
+	Global.current_question_type = Global.QuestionType.values().pick_random()
+
 	# 🔧 APPLY SETTINGS
 	rain.rain_enabled = enable_rain
 	world.SRC = randi() % 4

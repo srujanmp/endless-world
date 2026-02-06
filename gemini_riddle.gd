@@ -1,6 +1,8 @@
 extends Node
 class_name GeminiRiddle
 
+var resolved_search_topic: String = ""
+
 # ================= SCRAPING CONFIG =================
 const DEBUG_FILE: String = "user://debug_scrape.txt"
 
@@ -43,17 +45,30 @@ var current_difficulty: String = ""
 var scrape_target_url: String = ""
 var web_data: String = ""
 
+var _log_timer: Timer
+@onready var log_label: Label = get_node_or_null("../RiddleUI/Log")
+
 signal riddle_generated(data: Dictionary)
 
 # =================================================
 func _ready() -> void:
+	# 1. SETUP TIMER FIRST
+	_log_timer = Timer.new()
+	_log_timer.wait_time = 3.0
+	_log_timer.one_shot = true
+	_log_timer.timeout.connect(_on_log_timer_timeout)
+	add_child(_log_timer)
+	if log_label: log_label.hide()
+
+	# 2. NOW YOU CAN CALL LOGS
 	print("[GeminiRiddle] Initializing...")
-	
+	add_log("Initializing...")
+
 	# Add HTTP nodes
 	add_child(http_search)
 	add_child(http_scrape)
 	add_child(http_groq)
-	
+
 	# Connect signals
 	http_search.request_completed.connect(_on_search_response)
 	http_scrape.request_completed.connect(_on_scrape_response)
@@ -69,9 +84,54 @@ func generate_riddle() -> void:
 	current_topic = Global.selected_topic if "selected_topic" in Global else "Programming"
 	
 	print("[GeminiRiddle] Requesting Riddle. Topic: %s | Difficulty: %s" % [current_topic, current_difficulty])
-	
+	add_log("Generating: %s (%s)" % [current_topic, current_difficulty])
 	# Start the scraping process
-	_scrape_universal(current_topic)
+	_resolve_topic_with_llm(current_topic)
+
+func _resolve_topic_with_llm(topic: String) -> void:
+	var env := EnvLoader.load_env("res://.env")
+	var api_key :Variant = env.get("GROQ_API_KEY", "")
+	
+	if api_key.is_empty():
+		push_error("[GeminiRiddle] GROQ_API_KEY missing, using original topic")
+		resolved_search_topic = topic
+		_scrape_universal(resolved_search_topic)
+		return
+	
+	var prompt := """
+	You are a topic resolver.
+	Given a user topic, do the following:
+	1. Generate 5 related subtopics.
+	2. Randomly choose ONE subtopic.
+	
+	Return STRICT JSON only:
+	{
+	  "general_topic": "string",
+	  "chosen_subtopic": "string"
+	}
+	
+	User topic: "%s"
+	""" % topic
+	
+	var body := {
+		"model": "openai/gpt-oss-120b",
+		"messages": [{"role": "user", "content": prompt}],
+		"temperature": 0.4,
+		"response_format": {"type": "json_object"}
+	}
+	
+	var headers: PackedStringArray = [
+		"Content-Type: application/json",
+		"Authorization: Bearer %s" % api_key
+	]
+	
+	http_groq.request(
+		"https://api.groq.com/openai/v1/chat/completions",
+		headers,
+		HTTPClient.METHOD_POST,
+		JSON.stringify(body)
+	)
+
 
 # ================= UNIVERSAL SEARCH & SCRAPE =================
 func _scrape_universal(topic: String) -> void:
@@ -82,6 +142,8 @@ func _scrape_universal(topic: String) -> void:
 		file.close()
 	
 	print("\n--- Searching Serper.dev for: %s ---" % topic)
+	add_log("Searching Web for: "+ topic)
+
 	
 	# Load API key from environment
 	var env := EnvLoader.load_env("res://.env")
@@ -156,6 +218,7 @@ func _on_search_response(_result, code, _headers, body) -> void:
 		return
 	
 	print("Scraping: %s" % scrape_target_url)
+	add_log("Scraping:"+ scrape_target_url)
 	
 	# Append to debug file
 	var file := FileAccess.open(DEBUG_FILE, FileAccess.READ_WRITE)
@@ -194,6 +257,7 @@ func _on_scrape_response(_result, code, _headers, body) -> void:
 	
 	# Now call Groq API with the web data
 	print("[GeminiRiddle] Scraped %d characters of text" % web_data.length())
+	add_log("Scraped %s chars" % str(web_data.length()))
 	_call_groq_api(web_data)
 
 # =================================================
@@ -277,6 +341,10 @@ func _call_groq_api(web_data_param: String) -> void:
 	
 	var web_data_condition := "" if web_data_param.is_empty() else 'Base it on the SOURCE MATERIAL provided.'
 	var source_type := "internal_knowledge" if web_data_param.is_empty() else "web"
+	print("current topic is: ",current_topic)
+	var effective_topic := resolved_search_topic if not resolved_search_topic.is_empty() else current_topic
+	print("sub topic chosen by llm : ",effective_topic)
+	#add_log("current topic is: "+current_topic+"\nsub topic chosen by llm : "+effective_topic)
 	
 	var prompt := """
 	SYSTEM: You are a technical question creator. You must follow the Task exactly as written, recheck the conditions  
@@ -304,7 +372,7 @@ func _call_groq_api(web_data_param: String) -> void:
 	  "hints": ["hint1", "hint2", "hint3", "hint4"],
 	  "fact_reference": "Short sentence explaining the fact used",
 	  "source": "%s"
-	}""" % [source_context, current_topic, web_data_condition, current_difficulty, source_type]
+	}""" % [source_context, effective_topic, web_data_condition, current_difficulty, source_type]
 	
 	print("[GeminiRiddle] Prompt length: %d characters" % prompt.length())
 	
@@ -337,6 +405,26 @@ func _call_groq_api(web_data_param: String) -> void:
 
 # =================================================
 func _on_groq_response(_result, code, _headers, body) -> void:
+	
+		# ---- Topic resolution response ----
+	if current_topic != "" and resolved_search_topic == "":
+		var text :Variant= body.get_string_from_utf8()
+		var data :Variant= JSON.parse_string(text)
+		
+		if typeof(data) == TYPE_DICTIONARY and data.has("choices"):
+			var content :Variant= data["choices"][0]["message"]["content"]
+			var clean := _remove_control_characters(content)
+			var parsed :Variant= JSON.parse_string(clean)
+			
+			if typeof(parsed) == TYPE_DICTIONARY and parsed.has("chosen_subtopic"):
+				resolved_search_topic = parsed["chosen_subtopic"]
+				print("[GeminiRiddle] Resolved search topic:", resolved_search_topic)
+				add_log("Resolved search topic: "+ resolved_search_topic)
+
+				_scrape_universal(resolved_search_topic)
+				return
+
+	
 	print("[GeminiRiddle] Groq Response received. Code: ", code)
 	
 	if code != 200:
@@ -396,6 +484,7 @@ func _use_fallback() -> void:
 
 # =================================================
 func _log_riddle_details(data: Dictionary) -> void:
+	add_log("Generated Question \nClick 🔎");
 	print("------------------------------------------")
 	print("[GeminiRiddle] DATA SOURCE: ", data.get("source", "unknown"))
 	print("QUESTION: ", data.get("riddle", "N/A"))
@@ -403,3 +492,20 @@ func _log_riddle_details(data: Dictionary) -> void:
 	print("ANSWER: ", data.get("solution", "N/A"))
 	print("FACT: ", data.get("fact_reference", "N/A"))
 	print("------------------------------------------")
+
+
+# ================= LOG SYSTEM =================
+func add_log(message: String) -> void:
+	if not log_label:
+		return
+
+	log_label.text = message
+	log_label.show()
+
+	# Restart idle timer every time a log comes
+	_log_timer.stop()
+	_log_timer.start()
+
+func _on_log_timer_timeout() -> void:
+	if log_label:
+		log_label.hide()

@@ -17,10 +17,25 @@ class_name AnswerPopup
 	$Panel/VBoxContainer/OptionsContainer/OptionD
 ]
 
+@onready var fill_container: VBoxContainer = $Panel/VBoxContainer/FillContainer
+@onready var answer_input: LineEdit = $Panel/VBoxContainer/FillContainer/AnswerInput
+
+
 var correct_answer := ""
 var selected_answer := ""
+var popup_type: Global.QuestionType
 var hearts: HeartSystem
 var map_ref
+
+func _hide_all_popups():
+	# Hide MCQ
+	for btn in option_buttons:
+		btn.visible = false
+
+	# Hide fill in blank
+	fill_container.visible = false
+	answer_input.text = ""
+
 
 # =============================
 func _ready():
@@ -37,11 +52,26 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map):
 		return
 
 	visible = true
-	correct_answer = solution.to_lower()
-	selected_answer = ""
 	hearts = heart_system
 	map_ref = map
+	correct_answer = solution.to_lower()
+	selected_answer = ""
 
+	_hide_all_popups()
+
+	# RANDOM POPUP TYPE
+	
+	popup_type = Global.current_question_type
+
+
+	match Global.current_question_type:
+		Global.QuestionType.MCQ:
+			_open_mcq(options)
+		Global.QuestionType.FILL_BLANK:
+			_open_fill_blank()
+
+
+func _open_mcq(options: Array):
 	message.text = "Choose the correct answer"
 
 	# RESET & FILL EXISTING BUTTONS
@@ -61,6 +91,12 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map):
 			btn.visible = true
 			btn.pressed.connect(_on_option_selected.bind(btn, options[i]))
 
+func _open_fill_blank():
+	message.text = "Fill in the correct answer"
+	fill_container.visible = true
+	answer_input.grab_focus()
+
+
 # =============================
 # OPTION SELECT
 # =============================
@@ -78,11 +114,21 @@ func _on_option_selected(btn: Button, option_text: String):
 # SUBMIT ANSWER
 # =============================
 func _on_submit():
-	if selected_answer == "":
-		message.text = "⚠ Select an option"
+	var user_answer := ""
+
+	match popup_type:
+		Global.QuestionType.MCQ:
+			user_answer = selected_answer
+		Global.QuestionType.FILL_BLANK:
+			user_answer = answer_input.text.strip_edges().to_lower()
+
+	if user_answer == "":
+		message.text = "⚠ Answer required"
 		return
 
-	if selected_answer == correct_answer:
+	if user_answer == correct_answer:
+	
+	
 		$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
 		Global.end_game(true)
 
@@ -109,6 +155,7 @@ func _on_submit():
 
 # =============================
 func close():
+	_hide_all_popups()
 	visible = false
 	selected_answer = ""
 	message.text = ""
