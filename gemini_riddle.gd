@@ -45,7 +45,6 @@ var current_difficulty: String = ""
 var scrape_target_url: String = ""
 var web_data: String = ""
 
-var _log_queue: Array[String] = []
 var _log_timer: Timer
 @onready var log_label: Label = get_node_or_null("../RiddleUI/Log")
 
@@ -345,7 +344,7 @@ func _call_groq_api(web_data_param: String) -> void:
 	print("current topic is: ",current_topic)
 	var effective_topic := resolved_search_topic if not resolved_search_topic.is_empty() else current_topic
 	print("sub topic chosen by llm : ",effective_topic)
-	add_log("current topic is: "+current_topic+"\nsub topic chosen by llm : "+effective_topic)
+	#add_log("current topic is: "+current_topic+"\nsub topic chosen by llm : "+effective_topic)
 	
 	var prompt := """
 	SYSTEM: You are a technical question creator. You must follow the Task exactly as written, recheck the conditions  
@@ -497,18 +496,16 @@ func _log_riddle_details(data: Dictionary) -> void:
 
 # ================= LOG SYSTEM =================
 func add_log(message: String) -> void:
-	_log_queue.append(message)
-	_process_log_queue()
+	if not log_label:
+		return
 
-func _process_log_queue() -> void:
-	# Only show next log if timer isn't currently running (one after another)
-	if log_label and _log_timer.is_stopped() and not _log_queue.is_empty():
-		log_label.text = _log_queue.pop_front()
-		log_label.show()
-		_log_timer.start()
+	log_label.text = message
+	log_label.show()
+
+	# Restart idle timer every time a log comes
+	_log_timer.stop()
+	_log_timer.start()
 
 func _on_log_timer_timeout() -> void:
-	if not _log_queue.is_empty():
-		_process_log_queue() # Show next in line
-	elif log_label:
-		log_label.hide() # No new logs, disappear
+	if log_label:
+		log_label.hide()
