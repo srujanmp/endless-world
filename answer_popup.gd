@@ -1,3 +1,5 @@
+#change the ui to be exactly same as the ui of actual wordle and animations and also font size increase
+
 extends CanvasLayer
 class_name AnswerPopup
 
@@ -7,6 +9,12 @@ var max_attempts := 5
 var current_row := 0
 var current_col := 0
 var boxes := []
+
+# Add these constants at the top of your script
+const COLOR_CORRECT = Color("6aaa64") # Green
+const COLOR_PRESENT = Color("c9b458") # Yellow
+const COLOR_ABSENT = Color("787c7e")  # Gray
+const COLOR_EMPTY = Color("3a3a3c")   # Dark Gray Border
 
 
 @onready var message: Label = $Panel/VBoxContainer/MessageLabel
@@ -84,29 +92,45 @@ func _build_wordle_grid():
 	boxes.clear()
 	current_row = 0
 	current_col = 0
-
-	for row in wordle_grid.get_children():
-		row.queue_free()
+	for row in wordle_grid.get_children(): row.queue_free()
 
 	for r in range(max_attempts):
 		var row := HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 8) # Space between boxes
 		wordle_grid.add_child(row)
-
+		
 		var row_boxes := []
 		for i in correct_answer.length():
-			var lbl := Label.new()
-			lbl.text = ""
-			lbl.custom_minimum_size = Vector2(50, 50)
+			var panel = PanelContainer.new()
+			var lbl = Label.new()
+			var style = StyleBoxFlat.new()
+			
+			# FIX: Set borders individually to avoid the error
+			style.draw_center = true
+			style.bg_color = Color.TRANSPARENT
+			style.set_border_width_all(2) # Helper method (works in Godot 4)
+			# If set_border_width_all still fails, use:
+			style.border_width_left = 2
+			style.border_width_top = 2
+			style.border_width_right = 2
+			style.border_width_bottom = 2
+			style.border_color = COLOR_EMPTY
+			
+			panel.add_theme_stylebox_override("panel", style)
+			panel.custom_minimum_size = Vector2(60, 60)
+			panel.pivot_offset = Vector2(30, 30)
+			
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			lbl.add_theme_font_size_override("font_size", 32)
 			lbl.add_theme_color_override("font_color", Color.WHITE)
-			lbl.add_theme_color_override("background_color", Color.DIM_GRAY)
-			row.add_child(lbl)
-			row_boxes.append(lbl)
-
+			
+			panel.add_child(lbl)
+			row.add_child(panel)
+			row_boxes.append(panel)
 		boxes.append(row_boxes)
-
-
+		
 func _open_mcq(options: Array):
 	message.text = "Choose the correct answer"
 
@@ -279,59 +303,74 @@ func _open_wordle():
 	_build_wordle_grid()
 
 func _unhandled_input(event):
-	if not visible or Global.current_question_type != Global.QuestionType.WORDLE:
-		return
-	if current_row >= max_attempts:
-		return  # ⛔ stop input after last attempt
+	if not visible or Global.current_question_type != Global.QuestionType.WORDLE: return
+	if current_row >= max_attempts: return
 
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_BACKSPACE and current_col > 0:
 			current_col -= 1
-			boxes[current_row][current_col].text = ""
-
+			boxes[current_row][current_col].get_child(0).text = ""
 		elif event.keycode == KEY_ENTER:
-			if current_col == correct_answer.length():
-				_evaluate_word()
-
+			if current_col == correct_answer.length(): _evaluate_word()
 		elif event.unicode >= 65 and event.unicode <= 122:
 			if current_col < correct_answer.length():
-				boxes[current_row][current_col].text = char(event.unicode).to_upper()
-				current_col += 1
+				var box = boxes[current_row][current_col]
+				box.get_child(0).text = char(event.unicode).to_upper()
 				
+				# Pop Animation
+				var tween = create_tween()
+				tween.tween_property(box, "scale", Vector2(1.1, 1.1), 0.05)
+				tween.tween_property(box, "scale", Vector2(1.0, 1.0), 0.05)
+				current_col += 1
+			
 func _evaluate_word():
 	var guess := ""
-	for b in boxes[current_row]:
-		guess += b.text.to_lower()
+	for box in boxes[current_row]:
+		guess += box.get_child(0).text.to_lower()
 
-	# Logic for coloring boxes
+	# Color Logic with Wordle animations
 	for i in guess.length():
 		var box = boxes[current_row][i]
-		var c = guess[i]
+		var lbl = box.get_child(0)
+		var char_guess = guess[i]
+		var target_color = COLOR_ABSENT
+		
+		if correct_answer[i] == char_guess:
+			target_color = COLOR_CORRECT
+		elif correct_answer.contains(char_guess):
+			target_color = COLOR_PRESENT
 
-		if not correct_answer.contains(c):
-			box.modulate = Color.GRAY
-		elif correct_answer[i] == c:
-			box.modulate = Color.GREEN
-		else:
-			box.modulate = Color.YELLOW
+		# FLIP ANIMATION
+		var tween = create_tween()
+		tween.tween_property(box, "scale:y", 0.0, 0.1).set_delay(i * 0.1)
+		
+		# Change color exactly when the box is "flat"
+		tween.step_finished.connect(func(idx):
+			var style = box.get_theme_stylebox("panel").duplicate()
+			style.bg_color = target_color
+			style.border_color = target_color
+			box.add_theme_stylebox_override("panel", style)
+		, CONNECT_ONE_SHOT)
+		
+		tween.tween_property(box, "scale:y", 1.0, 0.1)
 
-	# Check for Win
+	# Wait for the last box to finish flipping
+	await get_tree().create_timer(0.2 + (0.1 * guess.length())).timeout
+
 	if guess == correct_answer:
 		_wordle_victory()
-		return
 	else:
+		# RESTORED HEART/SCORE LOGIC
 		Global.add_score(-5)
-		hearts.damage(1)
+		if hearts:
+			hearts.damage(1)
 		
-
-	# Move to next row
-	current_row += 1
-	current_col = 0
-
-	# Check for Loss (No attempts left)
-	if current_row >= max_attempts:
-		_wordle_defeat()
+		current_row += 1
+		current_col = 0
 		
+		if current_row >= max_attempts:
+			_wordle_defeat()
+			
 func _wordle_defeat():
 	message.text = "❌ Out of attempts!"
 	gameover_sound.play()
