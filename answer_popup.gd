@@ -51,6 +51,10 @@ func _hide_all_popups():
 	# Hide fill in blank
 	fill_container.visible = false
 	answer_input.text = ""
+	
+	# NEW: Hide custom keyboard by default
+	if keyboard:
+		keyboard.visible = false
 
 
 # =============================
@@ -169,13 +173,26 @@ func _unhandled_input(event):
 	if current_row >= max_attempts: return
 	
 	if event is InputEventKey and event.pressed:
+		var key_text = ""
+		
 		if event.keycode == KEY_BACKSPACE:
+			key_text = "BKSP"
 			_on_custom_backspace()
 		elif event.keycode == KEY_ENTER:
+			key_text = "ENTER"
 			_on_submit()
-		elif event.unicode >= 32 and event.unicode <= 126:
-			var character = char(event.unicode)
-			_on_custom_key_pressed(character)
+		elif event.keycode == KEY_SPACE:
+			key_text = "SPACE"
+			_on_custom_key_pressed(" ")
+		else:
+			# Convert physical key to string (e.g., "A")
+			key_text = char(event.unicode).to_upper()
+			if key_text != "":
+				_on_custom_key_pressed(key_text)
+		
+		# TRIGGER THE COOL ANIMATION
+		if keyboard and key_text != "":
+			keyboard.animate_key_press(key_text)
 
 func _build_wordle_grid():
 	boxes.clear()
@@ -243,7 +260,15 @@ func _open_mcq(options: Array):
 func _open_fill_blank():
 	message.text = "Fill in the correct answer"
 	fill_container.visible = true
+	if keyboard: keyboard.visible = true # NEW: Show for Fill Blank
 	answer_input.grab_focus()
+
+func _open_wordle():
+	message.text = "Guess the word"
+	fill_container.visible = true
+	answer_input.visible = false
+	if keyboard: keyboard.visible = true # NEW: Show for Wordle
+	_build_wordle_grid()
 
 
 # =============================
@@ -392,12 +417,6 @@ func _make_shape_texture(shape: String, size := 16) -> Texture2D:
 					img.set_pixel(x + int(y * 0.2), y, c)
 
 	return ImageTexture.create_from_image(img)
-
-func _open_wordle():
-	message.text = "Guess the word"
-	fill_container.visible = true
-	answer_input.visible = false
-	_build_wordle_grid()
 
 
 func _evaluate_word():
