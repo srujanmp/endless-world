@@ -41,6 +41,9 @@ var base_sprite_pos := Vector2.ZERO
 var last_dir := Vector2.DOWN
 var current_tile_type := "Dirt" # default
 
+# Cache answer popup reference
+var answer_popup_cached = null
+
 # ================= FOOTSTEP SOUNDS =================
 var FOOTSTEP_SOUNDS := {
 	"Dirt": [],
@@ -57,6 +60,9 @@ func _ready():
 	footstep_timer.timeout.connect(play_footstep)
 	
 	foot_trail.position = Vector2(0, 7) # near feet
+	
+	# Cache answer popup reference (may not exist in all scenes)
+	answer_popup_cached = get_tree().root.find_child("AnswerPopup", true, false)
 
 
 # ==================================================
@@ -76,10 +82,17 @@ func load_folder(path: String) -> Array:
 
 # ==================================================
 func _physics_process(delta):
-	var dir := Vector2(
-		Input.get_action_strength("ui_right") - Input.get_action_strength("ui_left"),
-		Input.get_action_strength("ui_down") - Input.get_action_strength("ui_up")
-	)
+	# Check if answer popup is visible - if so, disable movement
+	var movement_blocked = answer_popup_cached and answer_popup_cached.visible
+	
+	var dir := Vector2.ZERO
+	
+	# Only process input if movement is not blocked
+	if not movement_blocked:
+		dir = Vector2(
+			Input.get_action_strength("ui_right") - Input.get_action_strength("ui_left"),
+			Input.get_action_strength("ui_down") - Input.get_action_strength("ui_up")
+		)
 
 	# 🏃 SPRINT LOGIC
 	var sprinting := Input.is_action_pressed("sprint")

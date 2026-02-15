@@ -22,6 +22,7 @@ extends Node2D
 
 var current_solution: String = ""
 var current_options: Array = []   # ✅ ADD THIS
+var current_question: String = ""
 
 
 # ==================================================
@@ -130,12 +131,14 @@ func _on_well_interacted():
 		current_solution,   # String
 		current_options,    # Array ✅ FROM GEMINI
 		hearts,             # HeartSystem
-		self
+		self,
+		current_question    # Question text
 	)
 
 func _on_riddle_generated(data: Dictionary) -> void:
 	current_solution = str(data["solution"]).strip_edges().to_lower()
 	current_options = data.get("options", []).duplicate()
+	current_question = str(data.get("riddle", ""))
 
 	riddle_ui.setup_riddle(data)
 
