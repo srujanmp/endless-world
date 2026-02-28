@@ -5,7 +5,8 @@ extends Node
 enum QuestionType {
 	MCQ,
 	FILL_BLANK,
-	WORDLE
+	WORDLE,
+	WHACK
 }
 
 
