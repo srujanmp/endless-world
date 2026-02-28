@@ -26,6 +26,17 @@ const COLOR_EMPTY = Color("3a3a3c")   # Dark Gray Border
 @onready var gameover_sound: AudioStreamPlayer = $GameOverSound
 
 
+@onready var whack_container = $Panel/VBoxContainer/WhackContainer
+@onready var mole_grid = $Panel/VBoxContainer/WhackContainer/MoleGrid
+@onready var hammer: TextureRect = $Hammer
+
+var mole_slots = []
+var whack_timer : Timer
+var active_mole_index := -1
+var hammer_rest_rotation := 0.0
+var hammer_hit_rotation := -35.0
+var whack_active := false
+
 # EXISTING OPTION BUTTONS (NO DYNAMIC CREATION)
 @onready var option_buttons: Array[Button] = [
 	$Panel/VBoxContainer/OptionsContainer/OptionA,
@@ -54,6 +65,9 @@ func _hide_all_popups():
 	fill_container.visible = false
 	answer_input.text = ""
 	
+	# Hide whack-a-mole
+	whack_container.visible = false
+	
 	# NEW: Hide custom keyboard by default
 	if keyboard:
 		keyboard.visible = false
@@ -62,6 +76,8 @@ func _hide_all_popups():
 # =============================
 func _ready():
 	visible = false
+	hammer.visible = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	submit.pressed.connect(_on_submit)
 	close_button.pressed.connect(close)
 	
@@ -78,12 +94,52 @@ func _ready():
 	answer_input.editable = true 
 	# Prevent the LineEdit from grabbing focus and potentially triggering OS behaviors
 	answer_input.focus_mode = Control.FOCUS_CLICK
+	for child in mole_grid.get_children():
+		mole_slots.append(child)
+	whack_timer = Timer.new()
+	whack_timer.wait_time = 0.75
+	whack_timer.timeout.connect(_pop_random_mole)
+	add_child(whack_timer)
+
 	
+
+	for i in range(mole_slots.size()):
+		var slot = mole_slots[i]
+		slot.gui_input.connect(_on_mole_clicked.bind(i))
+		
+		
+	for slot in mole_slots:
+		var slot_w = slot.custom_minimum_size.x  # 300
+		var clip = slot.get_node("ClipContainer")
+		var mole = clip.get_node("Mole")
+		var hole = slot.get_node("Hole")
+		var label = slot.get_node("OptionLabel")
+		# Center ClipContainer horizontally
+		var clip_w = clip.size.x
+		clip.position.x = (slot_w - clip_w) / 2.0
+		# Center Mole inside ClipContainer
+		var mole_w = mole.size.x
+		mole.position.x = (clip_w - mole_w) / 2.0
+		# Center Hole horizontally
+		var hole_w = hole.size.x
+		hole.position.x = (slot_w - hole_w) / 2.0
+		# Hide mole below clip
+		mole.position.y = clip.size.y
 	# Listen to custom 2D keyboard buttons
 	if keyboard:
 		keyboard.key_pressed.connect(_on_custom_key_pressed)
 		keyboard.backspace_pressed.connect(_on_custom_backspace)
 		keyboard.enter_pressed.connect(_on_submit)
+
+func _process(_delta):
+	if whack_active:
+		hammer.visible = true
+		Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+		hammer.global_position = get_viewport().get_mouse_position() - hammer.size * 0.5
+	else:
+		hammer.visible = false
+		if Input.get_mouse_mode() != Input.MOUSE_MODE_VISIBLE:
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 func _on_custom_key_pressed(chars: String):
 	# Update LineEdit for Fill-in-the-blank
@@ -164,12 +220,129 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map, ques
 			_open_fill_blank()
 		Global.QuestionType.WORDLE:
 			_open_wordle()
+		Global.QuestionType.WHACK:
+			_open_whack(options, solution)
+
+func _open_whack(options: Array, solution: String):
+	whack_container.visible = true
+	submit.visible = false  # No submit button for whack mode
+	correct_answer = solution.to_lower()
+
+	# Shuffle options and reset all moles to hidden position
+	var shuffled = options.duplicate()
+	shuffled.shuffle()
+
+	for i in range(mole_slots.size()):
+		var slot = mole_slots[i]
+		var label = slot.get_node("OptionLabel")
+		label.text = shuffled[i]
+		label.visible = false
+		# Fit label width to text + padding and center it
+		var slot_w = slot.custom_minimum_size.x
+		var text_w = label.get_theme_font("font").get_string_size(label.text, HORIZONTAL_ALIGNMENT_CENTER, -1, label.get_theme_font_size("font_size")).x
+		var padding = 20.0
+		label.size.x = text_w + padding
+		label.position.x = (slot_w - label.size.x) / 2.0
+		# Ensure mole is in hidden position
+		var clip = slot.get_node("ClipContainer")
+		var mole = clip.get_node("Mole")
+		mole.position.y = clip.size.y
+
+	active_mole_index = -1
+	whack_active = true
+	whack_timer.start()
+
+
+func _pop_random_mole():
+	if active_mole_index != -1:
+		_hide_mole(active_mole_index)
+
+	active_mole_index = randi() % mole_slots.size()
+	_show_mole(active_mole_index)
+
+func _show_mole(index):
+	var clip = mole_slots[index].get_node("ClipContainer")
+	var mole = clip.get_node("Mole")
+
+	var tween = create_tween()
+	tween.tween_property(mole, "position:y", 0, 0.135)\
+		.set_trans(Tween.TRANS_SINE)\
+		.set_ease(Tween.EASE_OUT)
+
+	var label = mole_slots[index].get_node("OptionLabel")
+	label.visible = true
+func _hide_mole(index):
+	var clip = mole_slots[index].get_node("ClipContainer")
+	var mole = clip.get_node("Mole")
+
+	var hidden_y = clip.size.y
+
+	var tween = create_tween()
+	tween.tween_property(mole, "position:y", hidden_y, 0.135)\
+		.set_trans(Tween.TRANS_SINE)\
+		.set_ease(Tween.EASE_IN)
+
+	var label = mole_slots[index].get_node("OptionLabel")
+	label.visible = false
+func _on_mole_clicked(event, index):
+	if event is InputEventMouseButton and event.pressed:
+		if index != active_mole_index:
+			return
+
+		# Validate click is within the mole/hole visual area (centered 220x220 in 300x300 slot)
+		var local_pos = event.position
+		var hole_rect = Rect2(40, 0, 220, 300)  # Covers hole + mole visual area
+		if not hole_rect.has_point(local_pos):
+			return
+
+		_swing_hammer()
+		_shake_panel()
+
+		var label = mole_slots[index].get_node("OptionLabel")
+		var chosen = label.text.to_lower()
+
+		# Stop the game logic but keep hammer visible during victory/loss animation
+		if whack_timer:
+			whack_timer.stop()
+		active_mole_index = -1
+
+		if chosen == correct_answer:
+			_handle_victory_shared()
+		else:
+			_handle_wrong_shared()		
+func _stop_whack():
+	whack_active = false
+	if whack_timer:
+		whack_timer.stop()
+	active_mole_index = -1
+	hammer.visible = false
+	hammer.rotation_degrees = 0.0
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func _swing_hammer():
+	var tween = create_tween()
+	tween.tween_property(hammer, "rotation_degrees", hammer_hit_rotation, 0.05)
+	tween.tween_property(hammer, "rotation_degrees", hammer_rest_rotation, 0.15)\
+		.set_trans(Tween.TRANS_BACK)\
+		.set_ease(Tween.EASE_OUT)
+
+func _shake_panel():
+	var original_pos = $Panel.position
+	var tween = create_tween()
+	for i in 5:
+		var offset = Vector2(randf_range(-10, 10), randf_range(-10, 10))
+		tween.tween_property($Panel, "position", original_pos + offset, 0.03)
+	tween.tween_property($Panel, "position", original_pos, 0.05)
 
 func close():
+	_stop_whack()
 	_hide_all_popups()
 	visible = false
 	selected_answer = ""
 	message.text = ""
+	
+	# Reset submit button visibility
+	submit.visible = true
 	
 	# Hide question label
 	if question_label:
@@ -201,9 +374,10 @@ func _unhandled_input(event):
 			_on_custom_key_pressed(" ")
 		else:
 			# Convert physical key to string (e.g., "A")
-			key_text = char(event.unicode).to_upper()
-			if key_text != "":
-				_on_custom_key_pressed(key_text)
+			if event.unicode != 0:
+				key_text = char(event.unicode).to_upper()
+				if key_text != "":
+					_on_custom_key_pressed(key_text)
 		
 		# TRIGGER THE COOL ANIMATION (Wordle + Fill-in-the-blank)
 		if keyboard and key_text != "" and Global.current_question_type in [Global.QuestionType.WORDLE, Global.QuestionType.FILL_BLANK]:
