@@ -53,8 +53,13 @@ var whack_active := false
 const WORDLOCK_LABEL_H := 60
 const WORDLOCK_COL_W  := 70
 const WORDLOCK_COL_SEP := 8   # tile separation inside each column VBox
-const WORDLOCK_CLIP_H  := 180  # visible viewport height (3 tiles)
+const WORDLOCK_CLIP_H  := 468  # visible viewport height (7 tiles: 7×60 + 6×8)
 const WORDLOCK_FONT = preload("res://Jersey10-Regular.ttf")
+# WordLock colour palette
+const WORDLOCK_ACTIVE_BG    := Color(0.294, 0.0,   0.510)        # #4B0082 deep indigo
+const WORDLOCK_INACTIVE_BG  := Color(0.800, 0.800, 1.0  )        # #CCCCFF light lavender
+const WORDLOCK_GLOW_COLOR   := Color(0.471, 0.318, 0.663)        # #7851A9 medium purple
+const WORDLOCK_INACTIVE_FONT := Color(0.294, 0.0,  0.510)        # dark indigo on lavender bg
 
 var wordlock_columns: Array = []
 var wordlock_selected_chars: Array = []
@@ -454,17 +459,17 @@ func _make_wordlock_tile_style(selected: bool) -> StyleBoxFlat:
 	s.corner_radius_bottom_right = 12
 	s.corner_radius_bottom_left  = 12
 	if selected:
-		s.bg_color     = Color(1.0, 0.18, 0.82)       # bright pink
+		s.bg_color     = WORDLOCK_ACTIVE_BG
 		s.border_width_left   = 3
 		s.border_width_top    = 3
 		s.border_width_right  = 3
 		s.border_width_bottom = 3
-		s.border_color  = Color(0.55, 0.0, 1.0)       # bright purple border
-		s.shadow_color  = Color(0.55, 0.0, 1.0, 0.85) # bright purple glow
+		s.border_color  = WORDLOCK_GLOW_COLOR
+		s.shadow_color  = Color(WORDLOCK_GLOW_COLOR.r, WORDLOCK_GLOW_COLOR.g, WORDLOCK_GLOW_COLOR.b, 0.85)
 		s.shadow_size   = 8
 	else:
-		s.bg_color     = Color(0.22, 0.22, 0.26)       # dark gray — keeps white text legible
-		s.shadow_color = Color(1.0, 1.0, 1.0, 0.12)   # subtle highlight glow
+		s.bg_color     = WORDLOCK_INACTIVE_BG
+		s.shadow_color = Color(WORDLOCK_GLOW_COLOR.r, WORDLOCK_GLOW_COLOR.g, WORDLOCK_GLOW_COLOR.b, 0.30)
 		s.shadow_size  = 3
 	return s
 
@@ -485,7 +490,7 @@ func _build_wordlock_columns():
 	for col_idx in word.length():
 		var correct_char := word[col_idx]
 
-		var count := randi_range(2, 4)
+		var count := randi_range(5, 8)
 		var chars: Array[String] = [correct_char]
 		while chars.size() < count:
 			var c := alphabet[randi() % alphabet.length()]
@@ -516,9 +521,10 @@ func _build_wordlock_columns():
 			btn.focus_mode = Control.FOCUS_NONE
 			btn.add_theme_font_size_override("font_size", 30)
 			btn.add_theme_font_override("font", WORDLOCK_FONT)
-			btn.add_theme_color_override("font_color",         Color.WHITE)
-			btn.add_theme_color_override("font_hover_color",   Color.WHITE)
-			btn.add_theme_color_override("font_pressed_color", Color.WHITE)
+			var font_col := Color.WHITE if i == 0 else WORDLOCK_INACTIVE_FONT
+			btn.add_theme_color_override("font_color",         font_col)
+			btn.add_theme_color_override("font_hover_color",   font_col)
+			btn.add_theme_color_override("font_pressed_color", font_col)
 			var style := _make_wordlock_tile_style(i == 0)
 			_apply_wordlock_btn_style(btn, style)
 			btn.pressed.connect(_on_wordlock_char_selected.bind(col_idx, i))
@@ -542,13 +548,20 @@ func _build_wordlock_columns():
 func _on_wordlock_char_selected(col_idx: int, char_idx: int):
 	var col: Dictionary = wordlock_columns[col_idx]
 
-	# Restore normal style on previously selected tile
+	# Restore normal style + dark font on previously selected tile
 	var prev_btn: Button = col["labels"][col["selected_idx"]]
 	_apply_wordlock_btn_style(prev_btn, _make_wordlock_tile_style(false))
+	var inactive_font := WORDLOCK_INACTIVE_FONT
+	prev_btn.add_theme_color_override("font_color",         inactive_font)
+	prev_btn.add_theme_color_override("font_hover_color",   inactive_font)
+	prev_btn.add_theme_color_override("font_pressed_color", inactive_font)
 
-	# Apply selected style to newly chosen tile
+	# Apply selected style + white font to newly chosen tile
 	var new_btn: Button = col["labels"][char_idx]
 	_apply_wordlock_btn_style(new_btn, _make_wordlock_tile_style(true))
+	new_btn.add_theme_color_override("font_color",         Color.WHITE)
+	new_btn.add_theme_color_override("font_hover_color",   Color.WHITE)
+	new_btn.add_theme_color_override("font_pressed_color", Color.WHITE)
 
 	col["selected_idx"] = char_idx
 	wordlock_selected_chars[col_idx] = col["chars"][char_idx].to_lower()
