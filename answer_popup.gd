@@ -51,7 +51,9 @@ var whack_active := false
 
 # WordLock constants
 const WORDLOCK_LABEL_H := 60
-const WORDLOCK_COL_W := 70
+const WORDLOCK_COL_W  := 70
+const WORDLOCK_COL_SEP := 8   # tile separation inside each column VBox
+const WORDLOCK_CLIP_H  := 180  # visible viewport height (3 tiles)
 const WORDLOCK_FONT = preload("res://Jersey10-Regular.ttf")
 
 var wordlock_columns: Array = []
@@ -461,7 +463,7 @@ func _make_wordlock_tile_style(selected: bool) -> StyleBoxFlat:
 		s.shadow_color  = Color(0.55, 0.0, 1.0, 0.85) # bright purple glow
 		s.shadow_size   = 8
 	else:
-		s.bg_color     = Color(0.72, 0.72, 0.76)       # light gray
+		s.bg_color     = Color(0.22, 0.22, 0.26)       # dark gray — keeps white text legible
 		s.shadow_color = Color(1.0, 1.0, 1.0, 0.12)   # subtle highlight glow
 		s.shadow_size  = 3
 	return s
@@ -491,9 +493,20 @@ func _build_wordlock_columns():
 				chars.append(c)
 		chars.shuffle()
 
-		# Column of tiles — no clip, all characters visible
+		# Clip container — defines the visible scroll viewport
+		var clip := Control.new()
+		clip.clip_contents = true
+		clip.custom_minimum_size = Vector2(WORDLOCK_COL_W, WORDLOCK_CLIP_H)
+
+		# VBoxContainer scrolled inside the clip
 		var col_box := VBoxContainer.new()
-		col_box.add_theme_constant_override("separation", 8)
+		col_box.add_theme_constant_override("separation", WORDLOCK_COL_SEP)
+		clip.add_child(col_box)
+
+		# Top padding so tile 0 can be centered in the viewport
+		var pad_top := Control.new()
+		pad_top.custom_minimum_size = Vector2(WORDLOCK_COL_W, WORDLOCK_LABEL_H)
+		col_box.add_child(pad_top)
 
 		var char_labels: Array = []
 		for i in chars.size():
@@ -512,9 +525,15 @@ func _build_wordlock_columns():
 			col_box.add_child(btn)
 			char_labels.append(btn)
 
-		wordlock_container.add_child(col_box)
+		# Bottom padding so the last tile can also be centered
+		var pad_bot := Control.new()
+		pad_bot.custom_minimum_size = Vector2(WORDLOCK_COL_W, WORDLOCK_LABEL_H)
+		col_box.add_child(pad_bot)
+
+		wordlock_container.add_child(clip)
 		wordlock_selected_chars.append(chars[0].to_lower())
 		wordlock_columns.append({
+			"charlist":     col_box,
 			"labels":       char_labels,
 			"selected_idx": 0,
 			"chars":        chars
@@ -533,6 +552,15 @@ func _on_wordlock_char_selected(col_idx: int, char_idx: int):
 
 	col["selected_idx"] = char_idx
 	wordlock_selected_chars[col_idx] = col["chars"][char_idx].to_lower()
+
+	# Smooth scroll: tween VBox.y so the selected tile centres in the clip viewport.
+	# The top padding equals LABEL_H, so tile i's centre sits at (LABEL_H + i*(LABEL_H+SEP) + LABEL_H/2).
+	# Setting VBox.y = -(i*(LABEL_H+SEP)) shifts that centre to CLIP_H/2 (the viewport centre).
+	var target_y := float(-char_idx * (WORDLOCK_LABEL_H + WORDLOCK_COL_SEP))
+	var tween := create_tween()
+	tween.tween_property(col["charlist"], "position:y", target_y, 0.25) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_OUT)
 
 func _open_mcq(options: Array):
 	message.text = "Choose the correct answer"
