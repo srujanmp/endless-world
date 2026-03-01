@@ -47,6 +47,17 @@ var whack_active := false
 
 @onready var fill_container: VBoxContainer = $Panel/VBoxContainer/FillContainer
 @onready var answer_input: LineEdit = $Panel/VBoxContainer/FillContainer/AnswerInput
+@onready var wordlock_container: HBoxContainer = $Panel/VBoxContainer/WordLockContainer
+
+# WordLock constants
+const COLOR_WORDLOCK_SELECTED = Color(1.0, 0.714, 0.757)  # baby pink
+const WORDLOCK_LABEL_H := 60
+const WORDLOCK_CLIP_H := 180
+const WORDLOCK_COL_W := 70
+const WORDLOCK_FONT = preload("res://Jersey10-Regular.ttf")
+
+var wordlock_columns: Array = []
+var wordlock_selected_chars: Array = []
 
 
 var correct_answer := ""
@@ -67,6 +78,9 @@ func _hide_all_popups():
 	
 	# Hide whack-a-mole
 	whack_container.visible = false
+	
+	# Hide word lock
+	wordlock_container.visible = false
 	
 	# NEW: Hide custom keyboard by default
 	if keyboard:
@@ -222,6 +236,8 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map, ques
 			_open_wordle()
 		Global.QuestionType.WHACK:
 			_open_whack(options, solution)
+		Global.QuestionType.WORD_LOCK:
+			_open_wordlock()
 
 func _open_whack(options: Array, solution: String):
 	whack_container.visible = true
@@ -426,6 +442,96 @@ func _build_wordle_grid():
 			row_boxes.append(panel)
 		boxes.append(row_boxes)
 		
+func _open_wordlock():
+	message.text = "Select the correct characters"
+	wordlock_container.visible = true
+	_build_wordlock_columns()
+
+func _build_wordlock_columns():
+	for child in wordlock_container.get_children():
+		child.queue_free()
+	wordlock_columns.clear()
+	wordlock_selected_chars.clear()
+
+	var word := correct_answer.to_upper()
+	var alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+	for col_idx in word.length():
+		var correct_char := word[col_idx]
+
+		var count := randi_range(3, 6)
+		var chars: Array[String] = [correct_char]
+		while chars.size() < count:
+			var c := alphabet[randi() % alphabet.length()]
+			if not chars.has(c):
+				chars.append(c)
+		chars.shuffle()
+
+		# Clip container (hides content outside visible area)
+		var clip := Control.new()
+		clip.clip_contents = true
+		clip.custom_minimum_size = Vector2(WORDLOCK_COL_W, WORDLOCK_CLIP_H)
+
+		# VBoxContainer scrolled inside the clip
+		var charlist := VBoxContainer.new()
+		charlist.add_theme_constant_override("separation", 0)
+		clip.add_child(charlist)
+
+		# Top padding so first/last chars can scroll to center
+		var pad_top := Control.new()
+		pad_top.custom_minimum_size = Vector2(WORDLOCK_COL_W, WORDLOCK_LABEL_H)
+		charlist.add_child(pad_top)
+
+		var char_labels: Array = []
+		for i in chars.size():
+			var btn := Button.new()
+			btn.text = chars[i]
+			btn.custom_minimum_size = Vector2(WORDLOCK_COL_W, WORDLOCK_LABEL_H)
+			btn.focus_mode = Control.FOCUS_NONE
+			btn.flat = true
+			btn.add_theme_font_size_override("font_size", 30)
+			btn.add_theme_font_override("font", WORDLOCK_FONT)
+			if i == 0:
+				btn.add_theme_color_override("font_color", COLOR_WORDLOCK_SELECTED)
+			else:
+				btn.add_theme_color_override("font_color", Color.WHITE)
+			btn.pressed.connect(_on_wordlock_char_selected.bind(col_idx, i))
+			charlist.add_child(btn)
+			char_labels.append(btn)
+
+		# Bottom padding
+		var pad_bot := Control.new()
+		pad_bot.custom_minimum_size = Vector2(WORDLOCK_COL_W, WORDLOCK_LABEL_H)
+		charlist.add_child(pad_bot)
+
+		wordlock_container.add_child(clip)
+		wordlock_selected_chars.append(chars[0].to_lower())
+		wordlock_columns.append({
+			"charlist": charlist,
+			"labels": char_labels,
+			"selected_idx": 0,
+			"chars": chars
+		})
+
+func _on_wordlock_char_selected(col_idx: int, char_idx: int):
+	var col: Dictionary = wordlock_columns[col_idx]
+
+	# Deselect the previously highlighted label
+	col["labels"][col["selected_idx"]].add_theme_color_override("font_color", Color.WHITE)
+
+	# Highlight the newly selected label
+	col["labels"][char_idx].add_theme_color_override("font_color", COLOR_WORDLOCK_SELECTED)
+	col["selected_idx"] = char_idx
+	wordlock_selected_chars[col_idx] = col["chars"][char_idx].to_lower()
+
+	# Smooth scroll so the selected char is centred in the clip
+	# Formula: charlist.y = -char_idx * LABEL_H  (top padding accounts for offset)
+	var target_y := float(-char_idx * WORDLOCK_LABEL_H)
+	var tween := create_tween()
+	tween.tween_property(col["charlist"], "position:y", target_y, 0.25) \
+		.set_trans(Tween.TRANS_SINE) \
+		.set_ease(Tween.EASE_OUT)
+
 func _open_mcq(options: Array):
 	message.text = "Choose the correct answer"
 
@@ -498,6 +604,10 @@ func _on_submit():
 			
 			# You already have this! We just need to call it.
 			_evaluate_word()
+		
+		Global.QuestionType.WORD_LOCK:
+			user_answer = "".join(wordlock_selected_chars)
+			_process_standard_answer(user_answer)
 
 # Helper to handle the logic for MCQ and Fill-in-blank
 func _process_standard_answer(user_answer: String):

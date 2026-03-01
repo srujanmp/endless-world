@@ -6,7 +6,8 @@ enum QuestionType {
 	MCQ,
 	FILL_BLANK,
 	WORDLE,
-	WHACK
+	WHACK,
+	WORD_LOCK
 }
 
 
