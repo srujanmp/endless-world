@@ -24,6 +24,10 @@ const COLOR_EMPTY = Color("3a3a3c")   # Dark Gray Border
 
 @onready var victory_sound: AudioStreamPlayer = $VictorySound
 @onready var gameover_sound: AudioStreamPlayer = $GameOverSound
+const KBC_OPEN_SOUND  = preload("res://assets/answerpopup/kbc-question.mp3")
+const KBC_LOCK_SOUND  = preload("res://assets/answerpopup/kbc-answer-locked-in.mp3")
+const KBC_RIGHT_SOUND = preload("res://assets/answerpopup/kbc-right-answer.mp3")
+const KBC_WRONG_SOUND = preload("res://assets/answerpopup/kbc-wrong-answer.mp3")
 
 
 @onready var whack_container = $Panel/VBoxContainer/WhackContainer
@@ -36,6 +40,10 @@ var active_mole_index := -1
 var hammer_rest_rotation := 0.0
 var hammer_hit_rotation := -35.0
 var whack_active := false
+var kbc_open_sound_player: AudioStreamPlayer
+var kbc_lock_sound_player: AudioStreamPlayer
+var kbc_right_sound_player: AudioStreamPlayer
+var kbc_wrong_sound_player: AudioStreamPlayer
 
 # EXISTING OPTION BUTTONS (NO DYNAMIC CREATION)
 @onready var option_buttons: Array[Button] = [
@@ -65,17 +73,32 @@ var wordlock_columns: Array = []
 var wordlock_selected_chars: Array = []
 
 # ========== KBC VARIABLES ==========
-const KBC_BG_COLOR      := Color(0.043, 0.043, 0.271)   # #0B0B45 Dark Blue
+const KBC_BG_COLOR      := Color(0.043, 0.043, 0.271, 0.4)   # #0B0B45 Dark Blue 50% transparent
 const KBC_GOLD          := Color(1.0, 0.843, 0.0)       # #FFD700 Gold
 const KBC_OPTION_BG     := Color(0.05, 0.1, 0.35)       # Dark blue option bg
 const KBC_OPTION_BORDER := Color(1.0, 0.843, 0.0, 0.6)  # Gold border
+const KBC_LIFELINE_BG   := Color(0.1, 0.1, 0.4, 0.9)    # Original lifeline blue
+const KBC_GRADIENT_TOP  := Color(0.18, 0.28, 0.80, 0.96)
+const KBC_GRADIENT_MID  := Color(0.07, 0.09, 0.46, 0.96)
+const KBC_GRADIENT_BOTTOM := Color(0.02, 0.02, 0.18, 0.96)
+const KBC_Q_GRADIENT_TOP := Color(0.22, 0.34, 0.92, 0.96)
+const KBC_Q_GRADIENT_MID := Color(0.08, 0.10, 0.50, 0.96)
+const KBC_Q_GRADIENT_BOTTOM := Color(0.02, 0.02, 0.20, 0.96)
+const KBC_SELECTED_TOP := Color(0.95, 0.77, 0.15, 0.96)
+const KBC_SELECTED_MID := Color(0.48, 0.30, 0.02, 0.96)
+const KBC_SELECTED_BOTTOM := Color(0.18, 0.10, 0.01, 0.96)
 const KBC_CORRECT_COLOR := Color(0.0, 0.7, 0.0)         # Green
 const KBC_WRONG_COLOR   := Color(0.85, 0.1, 0.1)        # Red
 const KBC_SELECTED_COLOR := Color(0.9, 0.75, 0.0)       # Yellow/Gold highlight
 
 var kbc_container: Control = null
+var kbc_msg_label: Label = null
 var kbc_option_buttons: Array = []
 var kbc_lifeline_buttons: Array = []  # [fifty_fifty, audience_poll, phone_friend]
+var kbc_lock_btn: Button = null
+var kbc_locked_in_player: AudioStreamPlayer = null
+var kbc_right_answer_player: AudioStreamPlayer = null
+var kbc_wrong_answer_player: AudioStreamPlayer = null
 var kbc_selected_answer := ""
 var kbc_lifelines_used := { "fifty_fifty": false, "audience_poll": false, "phone_friend": false }
 var kbc_current_options: Array = []
@@ -124,6 +147,18 @@ func _ready():
 	visible = false
 	hammer.visible = false
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	kbc_open_sound_player = AudioStreamPlayer.new()
+	kbc_open_sound_player.stream = KBC_OPEN_SOUND
+	add_child(kbc_open_sound_player)
+	kbc_locked_in_player = AudioStreamPlayer.new()
+	kbc_locked_in_player.stream = KBC_LOCK_SOUND
+	add_child(kbc_locked_in_player)
+	kbc_right_answer_player = AudioStreamPlayer.new()
+	kbc_right_answer_player.stream = KBC_RIGHT_SOUND
+	add_child(kbc_right_answer_player)
+	kbc_wrong_answer_player = AudioStreamPlayer.new()
+	kbc_wrong_answer_player.stream = KBC_WRONG_SOUND
+	add_child(kbc_wrong_answer_player)
 	submit.pressed.connect(_on_submit)
 	close_button.pressed.connect(close)
 	
@@ -404,10 +439,18 @@ func close():
 	
 	# Reset KBC state
 	kbc_selected_answer = ""
+	kbc_msg_label = null
+	kbc_lock_btn = null
 	kbc_lifelines_used = { "fifty_fifty": false, "audience_poll": false, "phone_friend": false }
 	kbc_current_options.clear()
 	kbc_option_buttons.clear()
 	kbc_lifeline_buttons.clear()
+	if kbc_locked_in_player and kbc_locked_in_player.playing:
+		kbc_locked_in_player.stop()
+	if kbc_right_answer_player and kbc_right_answer_player.playing:
+		kbc_right_answer_player.stop()
+	if kbc_wrong_answer_player and kbc_wrong_answer_player.playing:
+		kbc_wrong_answer_player.stop()
 	if kbc_container:
 		kbc_container.queue_free()
 		kbc_container = null
@@ -693,8 +736,8 @@ func _on_submit():
 			_process_standard_answer(user_answer)
 		
 		Global.QuestionType.KBC:
-			user_answer = kbc_selected_answer
-			_process_standard_answer(user_answer)
+			_kbc_process_answer(kbc_selected_answer)
+			return
 
 # Helper to handle the logic for MCQ and Fill-in-blank
 func _process_standard_answer(user_answer: String):
@@ -713,6 +756,10 @@ func _handle_victory_shared():
 	Global.end_game(true)
 	spawn_confetti()
 	message.text = "🎉 VICTORY!"
+	if kbc_msg_label:
+		kbc_msg_label.text = "🎉 VICTORY!"
+		kbc_msg_label.add_theme_color_override("font_color", KBC_GOLD)
+		kbc_msg_label.visible = true
 	victory_sound.play()
 	Global.add_score(30)
 	Global.next_level()
@@ -724,12 +771,103 @@ func _handle_wrong_shared():
 	if has_node("../DifficultyRL"):
 		$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
 	message.text = "❌ Wrong Answer"
-	gameover_sound.play()
+	if kbc_msg_label:
+		kbc_msg_label.text = "❌ Wrong Answer"
+		kbc_msg_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		kbc_msg_label.visible = true
+	if popup_type != Global.QuestionType.KBC:
+		gameover_sound.play()
 	Global.add_score(-10)
 	hearts.damage(2)
 	await get_tree().create_timer(1.0).timeout
 	close()
 	
+# =============================
+# KBC ANSWER WITH SUSPENSE
+# =============================
+func _kbc_process_answer(user_answer: String):
+	if user_answer == "":
+		message.text = "⚠ Select an answer first"
+		return
+
+	# Block input on options and lock button without visually greying them out
+	for btn in kbc_option_buttons:
+		btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if kbc_lock_btn:
+		kbc_lock_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# Play the dramatic locked-in sound and wait for it to finish
+	if kbc_locked_in_player.playing:
+		kbc_locked_in_player.stop()
+	kbc_locked_in_player.play()
+	await kbc_locked_in_player.finished
+
+	# Reveal the result
+	_kbc_highlight_answer(user_answer)
+
+	if user_answer == correct_answer:
+		kbc_right_answer_player.play()
+		if has_node("../DifficultyRL"):
+			$"../DifficultyRL".give_feedback(true, Global.current_hint_count)
+		Global.end_game(true)
+		spawn_confetti()
+		message.text = "🎉 VICTORY!"
+		if kbc_msg_label:
+			kbc_msg_label.text = "🎉 VICTORY!"
+			kbc_msg_label.add_theme_color_override("font_color", KBC_GOLD)
+			kbc_msg_label.visible = true
+		Global.add_score(30)
+		Global.next_level()
+		await get_tree().create_timer(2.5).timeout
+		close()
+		get_tree().change_scene_to_file("res://HomeScreen.tscn")
+	else:
+		kbc_wrong_answer_player.play()
+		if has_node("../DifficultyRL"):
+			$"../DifficultyRL".give_feedback(false, Global.current_hint_count)
+		message.text = "❌ Wrong Answer"
+		if kbc_msg_label:
+			kbc_msg_label.text = "❌ Wrong Answer"
+			kbc_msg_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+			kbc_msg_label.visible = true
+		Global.add_score(-10)
+		hearts.damage(2)
+		await get_tree().create_timer(2.5).timeout
+		close()
+
+func _kbc_highlight_answer(selected: String):
+	for i in kbc_option_buttons.size():
+		var btn: Button = kbc_option_buttons[i]
+		var opt_text: String = kbc_current_options[i].to_lower()
+		if opt_text == correct_answer:
+			var green_style := _make_kbc_option_hex_style(
+				320, 44,
+				Color(0.0, 0.55, 0.05, 0.96),
+				Color(0.0, 0.38, 0.03, 0.96),
+				Color(0.0, 0.22, 0.02, 0.96),
+				KBC_CORRECT_COLOR, 14, 3
+			)
+			btn.add_theme_stylebox_override("normal", green_style)
+			btn.add_theme_stylebox_override("hover", green_style)
+			btn.add_theme_stylebox_override("pressed", green_style)
+			btn.add_theme_stylebox_override("disabled", green_style)
+			btn.add_theme_color_override("font_color", Color.WHITE)
+			btn.add_theme_color_override("font_disabled_color", Color.WHITE)
+		elif opt_text == selected:
+			var red_style := _make_kbc_option_hex_style(
+				320, 44,
+				Color(0.65, 0.0, 0.0, 0.96),
+				Color(0.42, 0.0, 0.0, 0.96),
+				Color(0.22, 0.0, 0.0, 0.96),
+				KBC_WRONG_COLOR, 14, 3
+			)
+			btn.add_theme_stylebox_override("normal", red_style)
+			btn.add_theme_stylebox_override("hover", red_style)
+			btn.add_theme_stylebox_override("pressed", red_style)
+			btn.add_theme_stylebox_override("disabled", red_style)
+			btn.add_theme_color_override("font_color", Color.WHITE)
+			btn.add_theme_color_override("font_disabled_color", Color.WHITE)
+
 # =============================
 # KBC (KAUN BANEGA CROREPATI)
 # =============================
@@ -741,6 +879,9 @@ func _open_kbc(options: Array):
 	kbc_selected_answer = ""
 	kbc_current_options = options.duplicate()
 	kbc_lifelines_used = { "fifty_fifty": false, "audience_poll": false, "phone_friend": false }
+	if kbc_open_sound_player.playing:
+		kbc_open_sound_player.stop()
+	kbc_open_sound_player.play()
 
 	# Build the entire KBC UI dynamically
 	_build_kbc_ui(options)
@@ -749,6 +890,7 @@ func _build_kbc_ui(options: Array):
 	if kbc_container:
 		kbc_container.queue_free()
 		kbc_container = null
+	kbc_msg_label = null
 	kbc_option_buttons.clear()
 	kbc_lifeline_buttons.clear()
 
@@ -763,11 +905,31 @@ func _build_kbc_ui(options: Array):
 	bg.color = KBC_BG_COLOR
 	kbc_container.add_child(bg)
 
-	# Main VBox layout
+	# === FLOATING MESSAGE LABEL — shown on victory/wrong, always on top ===
+	kbc_msg_label = Label.new()
+	kbc_msg_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	kbc_msg_label.anchor_left = 0.05
+	kbc_msg_label.anchor_right = 0.95
+	kbc_msg_label.anchor_top = 0.0
+	kbc_msg_label.anchor_bottom = 0.12
+	kbc_msg_label.offset_left = 0
+	kbc_msg_label.offset_right = 0
+	kbc_msg_label.offset_top = 6
+	kbc_msg_label.offset_bottom = 0
+	kbc_msg_label.z_index = 100
+	kbc_msg_label.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	kbc_msg_label.add_theme_font_size_override("font_size", 36)
+	kbc_msg_label.add_theme_color_override("font_color", KBC_GOLD)
+	kbc_msg_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kbc_msg_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	kbc_msg_label.visible = false
+	kbc_container.add_child(kbc_msg_label)
+
+	# === MAIN BODY: vertical stack with bottom lifelines ===
 	var main_vbox := VBoxContainer.new()
-	main_vbox.set_anchors_preset(Control.PRESET_CENTER)
-	main_vbox.anchor_left = 0.05
-	main_vbox.anchor_right = 0.95
+	main_vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	main_vbox.anchor_left = 0.02
+	main_vbox.anchor_right = 0.98
 	main_vbox.anchor_top = 0.02
 	main_vbox.anchor_bottom = 0.98
 	main_vbox.offset_left = 0
@@ -777,53 +939,33 @@ func _build_kbc_ui(options: Array):
 	main_vbox.add_theme_constant_override("separation", 12)
 	kbc_container.add_child(main_vbox)
 
-	# === TOP BAR: Lifelines ===
-	var lifeline_bar := HBoxContainer.new()
-	lifeline_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	lifeline_bar.add_theme_constant_override("separation", 20)
-	main_vbox.add_child(lifeline_bar)
+	var logo_center := CenterContainer.new()
+	logo_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.add_child(logo_center)
 
-	var lifeline_label := Label.new()
-	lifeline_label.text = "⚡ LIFELINES"
-	lifeline_label.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
-	lifeline_label.add_theme_font_size_override("font_size", 22)
-	lifeline_label.add_theme_color_override("font_color", KBC_GOLD)
-	lifeline_bar.add_child(lifeline_label)
+	var logo := TextureRect.new()
+	logo.texture = load("res://assets/answerpopup/kbc.png")
+	logo.custom_minimum_size = Vector2(0, 320)
+	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	logo.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	logo_center.add_child(logo)
 
-	# 50:50
-	var btn_5050 := _make_kbc_lifeline_btn("🌓 50:50")
-	btn_5050.pressed.connect(_kbc_use_fifty_fifty)
-	lifeline_bar.add_child(btn_5050)
-
-	# Audience Poll
-	var btn_audience := _make_kbc_lifeline_btn("📊 Audience Poll")
-	btn_audience.pressed.connect(_kbc_use_audience_poll)
-	lifeline_bar.add_child(btn_audience)
-
-	# Phone a Friend
-	var btn_phone := _make_kbc_lifeline_btn("📞 Phone a Friend")
-	btn_phone.pressed.connect(_kbc_use_phone_friend)
-	lifeline_bar.add_child(btn_phone)
-
-	kbc_lifeline_buttons = [btn_5050, btn_audience, btn_phone]
-
-	# === QUESTION AREA ===
 	var question_panel := PanelContainer.new()
-	var q_style := StyleBoxFlat.new()
-	q_style.bg_color = Color(0.05, 0.05, 0.25, 0.9)
-	q_style.border_width_left = 2
-	q_style.border_width_top = 2
-	q_style.border_width_right = 2
-	q_style.border_width_bottom = 2
-	q_style.border_color = KBC_GOLD
-	q_style.corner_radius_top_left = 20
-	q_style.corner_radius_top_right = 20
-	q_style.corner_radius_bottom_right = 20
-	q_style.corner_radius_bottom_left = 20
+	question_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var q_style := _make_kbc_gradient_style(
+		480,
+		84,
+		KBC_Q_GRADIENT_TOP,
+		KBC_Q_GRADIENT_MID,
+		KBC_Q_GRADIENT_BOTTOM,
+		KBC_GOLD,
+		20,
+		2
+	)
 	q_style.content_margin_left = 20
 	q_style.content_margin_right = 20
-	q_style.content_margin_top = 16
-	q_style.content_margin_bottom = 16
+	q_style.content_margin_top = 10
+	q_style.content_margin_bottom = 10
 	question_panel.add_theme_stylebox_override("panel", q_style)
 	main_vbox.add_child(question_panel)
 
@@ -837,7 +979,6 @@ func _build_kbc_ui(options: Array):
 	q_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	question_panel.add_child(q_label)
 
-	# === OPTIONS (2x2 grid) ===
 	var options_grid := GridContainer.new()
 	options_grid.columns = 2
 	options_grid.add_theme_constant_override("h_separation", 16)
@@ -853,9 +994,8 @@ func _build_kbc_ui(options: Array):
 		options_grid.add_child(btn)
 		kbc_option_buttons.append(btn)
 
-	# === LOCK-IN BUTTON ===
 	var lock_btn := Button.new()
-	lock_btn.text = "LOCK IN ✅"
+	lock_btn.text = "LOCK"
 	lock_btn.custom_minimum_size = Vector2(200, 50)
 	lock_btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
 	lock_btn.add_theme_font_size_override("font_size", 28)
@@ -866,6 +1006,7 @@ func _build_kbc_ui(options: Array):
 	lock_style.corner_radius_top_right = 16
 	lock_style.corner_radius_bottom_right = 16
 	lock_style.corner_radius_bottom_left = 16
+	lock_style.corner_detail = 1
 	lock_style.border_width_left = 2
 	lock_style.border_width_top = 2
 	lock_style.border_width_right = 2
@@ -878,6 +1019,41 @@ func _build_kbc_ui(options: Array):
 	lock_btn.pressed.connect(_on_submit)
 	main_vbox.add_child(lock_btn)
 	lock_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	kbc_lock_btn = lock_btn
+
+	var content_spacer := Control.new()
+	content_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_vbox.add_child(content_spacer)
+
+	var lifeline_bar := HBoxContainer.new()
+	lifeline_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	lifeline_bar.add_theme_constant_override("separation", 12)
+	lifeline_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.add_child(lifeline_bar)
+
+	var lifeline_label := Label.new()
+	lifeline_label.text = "⚡ LIFELINES"
+	lifeline_label.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
+	lifeline_label.add_theme_font_size_override("font_size", 20)
+	lifeline_label.add_theme_color_override("font_color", KBC_GOLD)
+	lifeline_bar.add_child(lifeline_label)
+
+	var btn_5050 := _make_kbc_lifeline_btn("🌓 50:50")
+	btn_5050.pressed.connect(_kbc_use_fifty_fifty)
+	lifeline_bar.add_child(btn_5050)
+
+	var btn_audience := _make_kbc_lifeline_btn("📊 Audience")
+	btn_audience.pressed.connect(_kbc_use_audience_poll)
+	lifeline_bar.add_child(btn_audience)
+
+	var btn_phone := _make_kbc_lifeline_btn("📞 Phone")
+	btn_phone.pressed.connect(_kbc_use_phone_friend)
+	lifeline_bar.add_child(btn_phone)
+
+	kbc_lifeline_buttons = [btn_5050, btn_audience, btn_phone]
+
+	# Ensure close button renders above KBC overlay
+	close_button.move_to_front()
 
 	# === MESSAGE LABEL (reuse existing) ===
 	# message label is already part of the Panel, we just keep it visible
@@ -885,16 +1061,17 @@ func _build_kbc_ui(options: Array):
 func _make_kbc_lifeline_btn(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(160, 40)
+	btn.custom_minimum_size = Vector2(190, 55)
 	btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
 	btn.add_theme_font_size_override("font_size", 18)
 	btn.focus_mode = Control.FOCUS_NONE
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.4, 0.9)
+	style.bg_color = KBC_LIFELINE_BG
 	style.corner_radius_top_left = 20
 	style.corner_radius_top_right = 20
 	style.corner_radius_bottom_right = 20
 	style.corner_radius_bottom_left = 20
+	style.corner_detail = 1
 	style.border_width_left = 2
 	style.border_width_top = 2
 	style.border_width_right = 2
@@ -907,24 +1084,94 @@ func _make_kbc_lifeline_btn(text: String) -> Button:
 	btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	return btn
 
+func _make_kbc_gradient_style(width: int, height: int, top_color: Color, mid_color: Color, bottom_color: Color, border_color: Color, corner_cut: int, border_width: int) -> StyleBoxTexture:
+	var image := Image.create(width, height, false, Image.FORMAT_RGBA8)
+	for y in range(height):
+		var t :Variant= float(y) / max(1.0, float(height - 1))
+		var vertical := top_color.lerp(bottom_color, t)
+		var mid_boost :Variant= 1.0 - abs(t - 0.5) * 2.0
+		for x in range(width):
+			var left := x
+			var right := width - 1 - x
+			var top := y
+			var bottom := height - 1 - y
+			var in_tl_cut := left < corner_cut and top < corner_cut and left + top < corner_cut
+			var in_tr_cut := right < corner_cut and top < corner_cut and right + top < corner_cut
+			var in_bl_cut := left < corner_cut and bottom < corner_cut and left + bottom < corner_cut
+			var in_br_cut := right < corner_cut and bottom < corner_cut and right + bottom < corner_cut
+			if in_tl_cut or in_tr_cut or in_bl_cut or in_br_cut:
+				image.set_pixel(x, y, Color(0, 0, 0, 0))
+				continue
+
+			var center_glow :Variant= 1.0 - abs((float(x) / max(1.0, float(width - 1))) - 0.5) * 2.0
+			var fill := vertical.lerp(mid_color, clamp(mid_boost * 0.55 + center_glow * 0.20, 0.0, 0.65))
+
+			var is_border := left < border_width or right < border_width or top < border_width or bottom < border_width
+			is_border = is_border or (left < corner_cut and top < corner_cut and left + top < corner_cut + border_width)
+			is_border = is_border or (right < corner_cut and top < corner_cut and right + top < corner_cut + border_width)
+			is_border = is_border or (left < corner_cut and bottom < corner_cut and left + bottom < corner_cut + border_width)
+			is_border = is_border or (right < corner_cut and bottom < corner_cut and right + bottom < corner_cut + border_width)
+
+			image.set_pixel(x, y, border_color if is_border else fill)
+
+	var texture := ImageTexture.create_from_image(image)
+	var style := StyleBoxTexture.new()
+	style.texture = texture
+	style.texture_margin_left = corner_cut
+	style.texture_margin_top = corner_cut
+	style.texture_margin_right = corner_cut
+	style.texture_margin_bottom = corner_cut
+	return style
+
+func _make_kbc_option_hex_style(width: int, height: int, top_color: Color, mid_color: Color, bottom_color: Color, border_color: Color, side_cut: int, border_width: int) -> StyleBoxTexture:
+	var image := Image.create(width, height, false, Image.FORMAT_RGBA8)
+	var half_h :Variant= max(1.0, (height - 1) / 2.0)
+	for y in range(height):
+		var t :Variant= float(y) / max(1.0, float(height - 1))
+		var vertical := top_color.lerp(bottom_color, t)
+		var mid_boost :Variant= 1.0 - abs(t - 0.5) * 2.0
+		var side_inset := int(round(side_cut * abs(float(y) - half_h) / half_h))
+		var left_edge := side_inset
+		var right_edge := width - 1 - side_inset
+
+		for x in range(width):
+			if x < left_edge or x > right_edge:
+				image.set_pixel(x, y, Color(0, 0, 0, 0))
+				continue
+
+			var center_glow :Variant= 1.0 - abs((float(x) / max(1.0, float(width - 1))) - 0.5) * 2.0
+			var fill := vertical.lerp(mid_color, clamp(mid_boost * 0.55 + center_glow * 0.20, 0.0, 0.65))
+
+			var is_border := x - left_edge < border_width or right_edge - x < border_width
+			is_border = is_border or y < border_width or (height - 1 - y) < border_width
+			image.set_pixel(x, y, border_color if is_border else fill)
+
+	var texture := ImageTexture.create_from_image(image)
+	var style := StyleBoxTexture.new()
+	style.texture = texture
+	style.texture_margin_left = side_cut
+	style.texture_margin_top = 2
+	style.texture_margin_right = side_cut
+	style.texture_margin_bottom = 2
+	return style
+
 func _make_kbc_option_btn(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(250, 55)
+	btn.custom_minimum_size = Vector2(250, 36)
 	btn.add_theme_font_override("font", preload("res://Jersey10-Regular.ttf"))
-	btn.add_theme_font_size_override("font_size", 24)
+	btn.add_theme_font_size_override("font_size", 22)
 	btn.focus_mode = Control.FOCUS_NONE
-	var style := StyleBoxFlat.new()
-	style.bg_color = KBC_OPTION_BG
-	style.corner_radius_top_left = 25
-	style.corner_radius_top_right = 25
-	style.corner_radius_bottom_right = 25
-	style.corner_radius_bottom_left = 25
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = KBC_OPTION_BORDER
+	var style := _make_kbc_option_hex_style(
+		320,
+		44,
+		KBC_GRADIENT_TOP,
+		KBC_GRADIENT_MID,
+		KBC_GRADIENT_BOTTOM,
+		KBC_OPTION_BORDER,
+		14,
+		2
+	)
 	btn.add_theme_stylebox_override("normal", style)
 	btn.add_theme_stylebox_override("hover", style)
 	btn.add_theme_stylebox_override("pressed", style)
@@ -938,17 +1185,16 @@ func _on_kbc_option_selected(index: int, option_text: String):
 	# Reset all option highlights
 	for i in kbc_option_buttons.size():
 		var btn: Button = kbc_option_buttons[i]
-		var style := StyleBoxFlat.new()
-		style.bg_color = KBC_OPTION_BG
-		style.corner_radius_top_left = 25
-		style.corner_radius_top_right = 25
-		style.corner_radius_bottom_right = 25
-		style.corner_radius_bottom_left = 25
-		style.border_width_left = 2
-		style.border_width_top = 2
-		style.border_width_right = 2
-		style.border_width_bottom = 2
-		style.border_color = KBC_OPTION_BORDER
+		var style := _make_kbc_option_hex_style(
+			320,
+			44,
+			KBC_GRADIENT_TOP,
+			KBC_GRADIENT_MID,
+			KBC_GRADIENT_BOTTOM,
+			KBC_OPTION_BORDER,
+			14,
+			2
+		)
 		btn.add_theme_stylebox_override("normal", style)
 		btn.add_theme_stylebox_override("hover", style)
 		btn.add_theme_stylebox_override("pressed", style)
@@ -956,19 +1202,16 @@ func _on_kbc_option_selected(index: int, option_text: String):
 
 	# Highlight selected option in gold
 	var selected_btn: Button = kbc_option_buttons[index]
-	var sel_style := StyleBoxFlat.new()
-	sel_style.bg_color = Color(0.15, 0.15, 0.05, 0.9)
-	sel_style.corner_radius_top_left = 25
-	sel_style.corner_radius_top_right = 25
-	sel_style.corner_radius_bottom_right = 25
-	sel_style.corner_radius_bottom_left = 25
-	sel_style.border_width_left = 3
-	sel_style.border_width_top = 3
-	sel_style.border_width_right = 3
-	sel_style.border_width_bottom = 3
-	sel_style.border_color = KBC_SELECTED_COLOR
-	sel_style.shadow_color = Color(KBC_GOLD.r, KBC_GOLD.g, KBC_GOLD.b, 0.4)
-	sel_style.shadow_size = 6
+	var sel_style := _make_kbc_option_hex_style(
+		320,
+		44,
+		KBC_SELECTED_TOP,
+		KBC_SELECTED_MID,
+		KBC_SELECTED_BOTTOM,
+		KBC_SELECTED_COLOR,
+		14,
+		3
+	)
 	selected_btn.add_theme_stylebox_override("normal", sel_style)
 	selected_btn.add_theme_stylebox_override("hover", sel_style)
 	selected_btn.add_theme_stylebox_override("pressed", sel_style)
@@ -984,6 +1227,7 @@ func _kbc_disable_lifeline_btn(btn: Button):
 	grey_style.corner_radius_top_right = 20
 	grey_style.corner_radius_bottom_right = 20
 	grey_style.corner_radius_bottom_left = 20
+	grey_style.corner_detail = 1
 	grey_style.border_width_left = 2
 	grey_style.border_width_top = 2
 	grey_style.border_width_right = 2
@@ -1128,7 +1372,7 @@ func _show_kbc_audience_popup(percentages: Array):
 		bar_bg.add_child(bar_fill)
 
 		# Animate bar fill
-		var target_w := (percentages[i] / 100.0) * 200.0
+		var target_w :Variant= (percentages[i] / 100.0) * 200.0
 		var tw := create_tween()
 		tw.tween_property(bar_fill, "custom_minimum_size:x", target_w, 0.6).set_trans(Tween.TRANS_SINE)
 

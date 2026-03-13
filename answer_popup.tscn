@@ -332,8 +332,8 @@ texture = ExtResource("6_5s6qv")
 
 [node name="WordLockContainer" type="HBoxContainer" parent="Panel/VBoxContainer"]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 8
+alignment = 1
 
 [node name="OptionsContainer" type="VBoxContainer" parent="Panel/VBoxContainer"]
 layout_mode = 2
