@@ -76,10 +76,14 @@ func _create_journal_button() -> void:
 	_journal_button.add_theme_stylebox_override("pressed", sb_hover)
 
 	_journal_button.focus_mode = Control.FOCUS_NONE
-	# Place the button inside the JoyStickUI CanvasLayer, to the right of the StatsButton
-	_journal_button.custom_minimum_size = Vector2(170, 31)
-	_journal_button.size = Vector2(170, 31)
-	_journal_button.position = Vector2(80, 0)
+	# Place the button in the top-right corner of the screen inside the JoyStickUI CanvasLayer
+	const BTN_W := 170.0
+	const BTN_H := 40.0
+	const MARGIN := 10.0
+	var vp_w := get_viewport().get_visible_rect().size.x
+	_journal_button.custom_minimum_size = Vector2(BTN_W, BTN_H)
+	_journal_button.size = Vector2(BTN_W, BTN_H)
+	_journal_button.position = Vector2(vp_w - BTN_W - MARGIN, MARGIN)
 	_journal_button.z_index = 10
 	_journal_button.pressed.connect(_open_journal)
 	$JoyStickUI.add_child(_journal_button)
