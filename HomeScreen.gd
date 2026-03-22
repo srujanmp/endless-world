@@ -76,8 +76,15 @@ func _create_journal_button() -> void:
 	_journal_button.add_theme_stylebox_override("pressed", sb_hover)
 
 	_journal_button.focus_mode = Control.FOCUS_NONE
-	_journal_button.position = Vector2(20, 20)
-	_journal_button.z_index = 2
+	# Explicit size + top-left anchor so Godot renders the button immediately
+	_journal_button.custom_minimum_size = Vector2(170, 52)
+	_journal_button.size = Vector2(170, 52)
+	_journal_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_journal_button.offset_left   = 20
+	_journal_button.offset_top    = 20
+	_journal_button.offset_right  = 190   # 20 + 170
+	_journal_button.offset_bottom = 72    # 20 + 52
+	_journal_button.z_index = 10
 	_journal_button.pressed.connect(_open_journal)
 	add_child(_journal_button)
 

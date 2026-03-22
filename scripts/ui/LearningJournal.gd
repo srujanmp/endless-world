@@ -42,7 +42,7 @@ const TAB_NAMES := ["📖 Solved Riddles", "💡 Concepts", "✨ Fun Facts"]
 # Public API
 # ═══════════════════════════════════════════════════════════════════════════════
 func open() -> void:
-	_build_ui()
+	await _build_ui()
 	_show_tab(0)
 	_animate_open()
 
@@ -213,10 +213,11 @@ func _show_tab(idx: int) -> void:
 			tb.add_theme_stylebox_override("normal", _make_stylebox(TAB_INACTIVE, 0))
 			tb.add_theme_color_override("font_color", Color(1, 1, 1))
 
-	# Clear existing content
+	# Clear existing content immediately (free() avoids needing await)
+	if _content_vbox == null:
+		return
 	for child in _content_vbox.get_children():
-		child.queue_free()
-	await get_tree().process_frame
+		child.free()
 
 	match idx:
 		0: _populate_riddles()
