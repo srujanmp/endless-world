@@ -8,6 +8,7 @@ class_name LearningJournal
 
 # ── visuals ──────────────────────────────────────────────────────────────────
 const FONT_PATH        := "res://Jersey10-Regular.ttf"
+const JOURNAL_LAYER    := 30   # above all game UI (death overlay=20, AgenticBot=20)
 const BOOK_BG          := Color(0.96, 0.91, 0.78, 1.0)   # parchment
 const COVER_COLOR      := Color(0.42, 0.22, 0.08, 1.0)   # dark brown cover
 const SPINE_COLOR      := Color(0.30, 0.14, 0.05, 1.0)   # darker brown spine
@@ -54,7 +55,7 @@ func close() -> void:
 # Build UI
 # ═══════════════════════════════════════════════════════════════════════════════
 func _build_ui() -> void:
-	layer = 30   # above everything
+	layer = JOURNAL_LAYER
 
 	# dim overlay
 	_overlay = ColorRect.new()

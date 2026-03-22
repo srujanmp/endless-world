@@ -419,9 +419,13 @@ func create_death_overlay():
 # ==================================================
 # 2-MINUTE RANDOM FACT TIMER
 # ==================================================
+const FACT_TIMER_INTERVAL_SECONDS := 120.0   # 2 minutes
+
+var _last_fact_spoken: String = ""
+
 func _start_fact_timer() -> void:
 	var fact_timer := Timer.new()
-	fact_timer.wait_time = 120.0   # 2 minutes
+	fact_timer.wait_time = FACT_TIMER_INTERVAL_SECONDS
 	fact_timer.autostart = true
 	fact_timer.timeout.connect(_on_fact_timer_timeout)
 	add_child(fact_timer)
@@ -450,6 +454,12 @@ func _on_fact_timer_timeout() -> void:
 			"Your Learning Journal grows every time you answer a question. Check it on the home screen! 📖",
 		]
 
-	var fact: String = pool[randi() % pool.size()]
+	# Avoid repeating the same fact consecutively when pool has more than one entry
+	var candidates: Array = pool.filter(func(f): return f != _last_fact_spoken)
+	if candidates.is_empty():
+		candidates = pool
+
+	var fact: String = candidates[randi() % candidates.size()]
+	_last_fact_spoken = fact
 	Global.add_fact_to_journal(fact)
 	agentic_bot.speak(fact)

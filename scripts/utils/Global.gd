@@ -165,9 +165,9 @@ func add_riddle_to_journal(question: String, answer: String) -> void:
 func add_concept_to_journal(concept_text: String) -> void:
 	if concept_text.strip_edges().is_empty():
 		return
-	# Avoid duplicates
+	# Avoid duplicates (compare full text)
 	for entry in learning_journal.concepts:
-		if entry.get("name", "") == concept_text.left(60):
+		if entry.get("definition", "") == concept_text:
 			return
 	learning_journal.concepts.append({
 		"name": concept_text.left(60),
