@@ -43,7 +43,7 @@ func _create_journal_button() -> void:
 	_journal_button = Button.new()
 	_journal_button.text = "📖 Journal"
 	_journal_button.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
-	_journal_button.add_theme_font_size_override("font_size", 34)
+	_journal_button.add_theme_font_size_override("font_size", 30)
 	_journal_button.add_theme_color_override("font_color", Color(1, 0.85, 0.3, 1))
 	_journal_button.add_theme_color_override("font_hover_color", Color(1, 1, 0.6, 1))
 	_journal_button.add_theme_color_override("font_pressed_color", Color(1, 0.6, 0.1, 1))
@@ -76,17 +76,13 @@ func _create_journal_button() -> void:
 	_journal_button.add_theme_stylebox_override("pressed", sb_hover)
 
 	_journal_button.focus_mode = Control.FOCUS_NONE
-	# Explicit size + top-left anchor so Godot renders the button immediately
-	_journal_button.custom_minimum_size = Vector2(170, 52)
-	_journal_button.size = Vector2(170, 52)
-	_journal_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	_journal_button.offset_left   = 20
-	_journal_button.offset_top    = 20
-	_journal_button.offset_right  = 190   # 20 + 170
-	_journal_button.offset_bottom = 72    # 20 + 52
+	# Place the button inside the JoyStickUI CanvasLayer, to the right of the StatsButton
+	_journal_button.custom_minimum_size = Vector2(170, 31)
+	_journal_button.size = Vector2(170, 31)
+	_journal_button.position = Vector2(80, 0)
 	_journal_button.z_index = 10
 	_journal_button.pressed.connect(_open_journal)
-	add_child(_journal_button)
+	$JoyStickUI.add_child(_journal_button)
 
 
 func _open_journal() -> void:

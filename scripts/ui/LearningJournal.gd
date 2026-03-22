@@ -171,17 +171,7 @@ func _build_ui() -> void:
 	_page_container.position = Vector2(SPINE_W, page_y)
 	_book_root.add_child(_page_container)
 
-	# horizontal ruled lines on page
-	var rules_per_page := 14
-	var rule_step := (_page_container.size.y - 20.0) / rules_per_page
-	for i in range(rules_per_page):
-		var rule := ColorRect.new()
-		rule.color = LINE_COLOR
-		rule.size = Vector2(_page_container.size.x - 20, 1)
-		rule.position = Vector2(10, 24 + i * rule_step)
-		_page_container.add_child(rule)
-
-	# scroll container for content
+	# scroll container for content — fills the page area
 	_content_scroll = ScrollContainer.new()
 	_content_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_content_scroll.offset_left = 16
@@ -191,6 +181,9 @@ func _build_ui() -> void:
 	_content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_page_container.add_child(_content_scroll)
 
+	# VBox holds all entries and scrolls with the scroll container.
+	# Ruled lines are added as separator ColorRects between entries (see _add_entry),
+	# so the "paper lines" scroll together with the text content.
 	_content_vbox = VBoxContainer.new()
 	_content_vbox.add_theme_constant_override("separation", 10)
 	_content_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -267,17 +260,24 @@ func _populate_facts() -> void:
 # Entry Widgets
 # ═══════════════════════════════════════════════════════════════════════════════
 func _add_entry(heading: String, body: String) -> void:
-	var card := _make_panel(Color(1.0, 0.97, 0.88, 0.9), 8)
+	# PanelContainer auto-sizes to its content height, preventing overlapping cards.
+	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var card_sb := StyleBoxFlat.new()
+	card_sb.bg_color = Color(1.0, 0.97, 0.88, 0.9)
+	card_sb.corner_radius_top_left     = 8
+	card_sb.corner_radius_top_right    = 8
+	card_sb.corner_radius_bottom_left  = 8
+	card_sb.corner_radius_bottom_right = 8
+	card_sb.content_margin_left   = 10
+	card_sb.content_margin_top    = 6
+	card_sb.content_margin_right  = 10
+	card_sb.content_margin_bottom = 6
+	card.add_theme_stylebox_override("panel", card_sb)
 	_content_vbox.add_child(card)
 
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 4)
-	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vb.offset_left = 10
-	vb.offset_top = 6
-	vb.offset_right = -10
-	vb.offset_bottom = -6
 	card.add_child(vb)
 
 	var h_lbl := Label.new()
@@ -299,10 +299,10 @@ func _add_entry(heading: String, body: String) -> void:
 		b_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		vb.add_child(b_lbl)
 
-	# Divider line below card
+	# Divider line below card — scrolls with the content as a "ruled paper" line
 	var sep := ColorRect.new()
 	sep.color = LINE_COLOR
-	sep.custom_minimum_size = Vector2(0, 1)
+	sep.custom_minimum_size = Vector2(0, 2)
 	sep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_content_vbox.add_child(sep)
 
