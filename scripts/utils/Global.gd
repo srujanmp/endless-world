@@ -8,7 +8,8 @@ enum QuestionType {
 	WORDLE,
 	WHACK,
 	WORD_LOCK,
-	KBC
+	KBC,
+	CODING
 }
 
 
@@ -16,6 +17,7 @@ const SAVE_PATH := "user://save.json"
 var rl: DifficultyRL
 var difficulty: String = "MEDIUM"
 var current_question_type: QuestionType = QuestionType.MCQ
+var is_coding_mode: bool = false
 
 
 func _ready():
