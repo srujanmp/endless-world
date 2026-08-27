@@ -306,7 +306,7 @@ func _on_run_code_pressed() -> void:
 		coding_output.text = "⏳ Running..."
 
 func _on_code_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	var json := JSON.parse_string(body.get_string_from_utf8())
+	var json :Variant= JSON.parse_string(body.get_string_from_utf8())
 	if typeof(json) != TYPE_DICTIONARY:
 		coding_output.text = "❌ Invalid response from execution server."
 		return

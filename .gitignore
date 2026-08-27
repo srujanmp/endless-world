@@ -22,3 +22,10 @@ export_presets.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# Python server ignores
+/python_server/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
