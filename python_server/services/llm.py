@@ -20,6 +20,21 @@ else:
     groq_client = None
     logger.warning("Groq client NOT initialised — GROQ_API_KEY is missing from environment")
 
+# ─── Context limits ──────────────────────────────────────────────────────────
+# Capping context avoids sending huge scraped pages to the LLM, which burns
+# tokens and dramatically slows down response time.
+MAX_CONTEXT_CHARS = 4000
+
+
+def _trim_context(docs: List[str], max_chars: int = MAX_CONTEXT_CHARS) -> str:
+    """Join retrieved docs into a single context string, capped at max_chars."""
+    joined = "\n---\n".join(docs)
+    if len(joined) > max_chars:
+        logger.info("  Context trimmed: %d → %d characters (limit: %d)",
+                    len(joined), max_chars, max_chars)
+        return joined[:max_chars]
+    return joined
+
 
 def generate_rag_reply(prompt: str, retrieved_docs: List[str]) -> str:
     """Generates a reply for a RAG prompt using retrieved document chunks."""
@@ -27,8 +42,8 @@ def generate_rag_reply(prompt: str, retrieved_docs: List[str]) -> str:
         logger.error("Cannot generate RAG reply — Groq client is not configured")
         raise Exception("GROQ_API_KEY not configured")
 
-    context = "\n---\n".join(retrieved_docs)
-    logger.info("Building RAG prompt — %d context chunks, %d total context chars",
+    context = _trim_context(retrieved_docs)
+    logger.info("Building RAG prompt — %d context chunks, %d context chars",
                 len(retrieved_docs), len(context))
 
     system_prompt = f"""Use the following context to answer the user's question or respond to the prompt.
@@ -68,14 +83,14 @@ def generate_riddle_json(topic: str, difficulty: str, retrieved_docs: List[str])
         logger.error("Cannot generate riddle — Groq client is not configured")
         raise Exception("GROQ_API_KEY not configured")
 
-    context = "\n---\n".join(retrieved_docs)
+    context = _trim_context(retrieved_docs)
     source_context = f"SOURCE MATERIAL:\n{context}" if context else "No source material. Use internal knowledge."
     web_data_condition = "Base it on the SOURCE MATERIAL provided." if context else ""
     source_type = "web" if context else "internal_knowledge"
 
     logger.info("Building riddle prompt — Topic: \"%s\" | Difficulty: \"%s\" | Source: %s",
                 topic, difficulty, source_type)
-    logger.info("  Context: %d chunks, %d total characters", len(retrieved_docs), len(context))
+    logger.info("  Context: %d chunks, %d characters", len(retrieved_docs), len(context))
 
     prompt = f"""
     SYSTEM: You are a technical question creator. You must follow the Task exactly as written.

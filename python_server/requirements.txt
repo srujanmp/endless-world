@@ -2,8 +2,10 @@ fastapi
 uvicorn
 requests
 beautifulsoup4
+lxml
 sentence-transformers
 faiss-cpu
 groq
+httpx
 python-dotenv
 ddgs

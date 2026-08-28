@@ -17,7 +17,7 @@ logger.info("Environment variables loaded from .env")
 
 from models.schemas import ScrapeRequest, RAGRequest, RiddleRequest
 from services.scraper import search_and_scrape
-from services.vectordb import chunk_text, store_in_vectordb, retrieve_docs
+from services.vectordb import chunk_text, store_in_vectordb, retrieve_docs, reset_index
 from services.llm import generate_rag_reply, generate_riddle_json
 
 app = FastAPI(title="Endless Worlds RAG API")
@@ -35,6 +35,9 @@ async def scrape_and_store(req: ScrapeRequest):
     start = time.time()
 
     try:
+        logger.info("Step 0/3 — Clearing previous context from Vector DB...")
+        reset_index()
+
         logger.info("Step 1/3 — Searching DuckDuckGo and scraping top result...")
         target_url, cleaned_text = search_and_scrape(req.topic)
         logger.info("  ✔ Scraped URL: %s", target_url)

@@ -30,8 +30,18 @@ except Exception as e:
 # ─── Initialise FAISS Index ──────────────────────────────────────────────────
 VECTOR_DIMENSION = 384
 index = faiss.IndexFlatL2(VECTOR_DIMENSION)
-stored_chunks = []
+stored_chunks: List[str] = []
 logger.info("FAISS index initialised — dimension: %d, metric: L2", VECTOR_DIMENSION)
+
+
+def reset_index() -> None:
+    """Clears the FAISS index and stored chunks so stale context doesn't leak
+    into new riddle generations."""
+    global index, stored_chunks
+    old_count = index.ntotal
+    index.reset()
+    stored_chunks.clear()
+    logger.info("FAISS index reset — cleared %d stale vectors", old_count)
 
 
 def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
@@ -48,7 +58,7 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]
     return chunks
 
 
-def store_in_vectordb(chunks: List[str]):
+def store_in_vectordb(chunks: List[str]) -> None:
     """Embeds text chunks and stores them in the FAISS index."""
     global index, stored_chunks
 
@@ -61,7 +71,7 @@ def store_in_vectordb(chunks: List[str]):
 
     logger.info("Embedding %d chunks...", len(chunks))
     start = time.time()
-    embeddings = embedder.encode(chunks)
+    embeddings = embedder.encode(chunks, batch_size=64, show_progress_bar=False)
     embed_time = time.time() - start
     logger.info("  ✔ Embedding completed in %.2f seconds", embed_time)
 
@@ -83,10 +93,10 @@ def retrieve_docs(query: str, top_k: int = 3) -> List[str]:
     start = time.time()
 
     query_vector = embedder.encode([query])
-    distances, indices = index.search(np.array(query_vector, dtype=np.float32), top_k)
+    distances, indices_arr = index.search(np.array(query_vector, dtype=np.float32), top_k)
 
     results = []
-    for idx in indices[0]:
+    for idx in indices_arr[0]:
         if idx != -1 and idx < len(stored_chunks):
             results.append(stored_chunks[idx])
 
