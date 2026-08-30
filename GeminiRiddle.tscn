@@ -1,8 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://daqkdbg8j6fwf"]
-
-[ext_resource type="Script" uid="uid://brnwtdyobp3y2" path="res://gemini_riddle.gd" id="1_yyrds"]
-
-[node name="GeminiRiddle" type="Node"]
-script = ExtResource("1_yyrds")
-
-[node name="HTTPRequest" type="HTTPRequest" parent="."]
