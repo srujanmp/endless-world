@@ -15,6 +15,7 @@ extends Control
 
 var selected_topic: String = ""
 var _journal_button: Button
+var _coding_button: Button
 
 func _ready():
 	score_label.text = "⭐ Score: %d" % Global.score
@@ -42,11 +43,36 @@ func _ready():
 func _create_journal_button() -> void:
 	_journal_button = Button.new()
 	_journal_button.text = "📖 Journal"
-	_journal_button.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
-	_journal_button.add_theme_font_size_override("font_size", 30)
-	_journal_button.add_theme_color_override("font_color", Color(1, 0.85, 0.3, 1))
-	_journal_button.add_theme_color_override("font_hover_color", Color(1, 1, 0.6, 1))
-	_journal_button.add_theme_color_override("font_pressed_color", Color(1, 0.6, 0.1, 1))
+	_style_top_button(_journal_button)
+	# Place the button in the top-right corner of the screen inside the JoyStickUI CanvasLayer
+	const BTN_W := 170.0
+	const BTN_H := 40.0
+	const MARGIN := 10.0
+	var vp_w := get_viewport().get_visible_rect().size.x
+	_journal_button.custom_minimum_size = Vector2(BTN_W, BTN_H)
+	_journal_button.size = Vector2(BTN_W, BTN_H)
+	_journal_button.position = Vector2(vp_w - BTN_W - MARGIN, MARGIN)
+	_journal_button.z_index = 10
+	_journal_button.pressed.connect(_open_journal)
+	$JoyStickUI.add_child(_journal_button)
+	
+	_coding_button = Button.new()
+	_coding_button.text = "💻 Coding"
+	_style_top_button(_coding_button)
+	_coding_button.custom_minimum_size = Vector2(BTN_W, BTN_H)
+	_coding_button.size = Vector2(BTN_W, BTN_H)
+	_coding_button.position = Vector2(vp_w - (BTN_W * 2.0) - (MARGIN * 2.0), MARGIN)
+	_coding_button.z_index = 10
+	_coding_button.pressed.connect(_on_coding_pressed)
+	$JoyStickUI.add_child(_coding_button)
+
+
+func _style_top_button(button: Button) -> void:
+	button.add_theme_font_override("font", load("res://Jersey10-Regular.ttf"))
+	button.add_theme_font_size_override("font_size", 30)
+	button.add_theme_color_override("font_color", Color(1, 0.85, 0.3, 1))
+	button.add_theme_color_override("font_hover_color", Color(1, 1, 0.6, 1))
+	button.add_theme_color_override("font_pressed_color", Color(1, 0.6, 0.1, 1))
 
 	var sb_normal := StyleBoxFlat.new()
 	sb_normal.bg_color = Color(0.25, 0.12, 0.03, 0.75)
@@ -59,7 +85,7 @@ func _create_journal_button() -> void:
 	sb_normal.border_width_right = 2
 	sb_normal.border_width_bottom = 2
 	sb_normal.border_color = Color(0.72, 0.40, 0.10, 0.9)
-	_journal_button.add_theme_stylebox_override("normal", sb_normal)
+	button.add_theme_stylebox_override("normal", sb_normal)
 
 	var sb_hover := StyleBoxFlat.new()
 	sb_hover.bg_color = Color(0.35, 0.18, 0.05, 0.90)
@@ -72,21 +98,9 @@ func _create_journal_button() -> void:
 	sb_hover.border_width_right = 2
 	sb_hover.border_width_bottom = 2
 	sb_hover.border_color = Color(1.0, 0.75, 0.2, 1.0)
-	_journal_button.add_theme_stylebox_override("hover", sb_hover)
-	_journal_button.add_theme_stylebox_override("pressed", sb_hover)
-
-	_journal_button.focus_mode = Control.FOCUS_NONE
-	# Place the button in the top-right corner of the screen inside the JoyStickUI CanvasLayer
-	const BTN_W := 170.0
-	const BTN_H := 40.0
-	const MARGIN := 10.0
-	var vp_w := get_viewport().get_visible_rect().size.x
-	_journal_button.custom_minimum_size = Vector2(BTN_W, BTN_H)
-	_journal_button.size = Vector2(BTN_W, BTN_H)
-	_journal_button.position = Vector2(vp_w - BTN_W - MARGIN, MARGIN)
-	_journal_button.z_index = 10
-	_journal_button.pressed.connect(_open_journal)
-	$JoyStickUI.add_child(_journal_button)
+	button.add_theme_stylebox_override("hover", sb_hover)
+	button.add_theme_stylebox_override("pressed", sb_hover)
+	button.focus_mode = Control.FOCUS_NONE
 
 
 func _open_journal() -> void:
@@ -111,9 +125,16 @@ func _reset_stats():
 
 
 func _on_start_pressed():
+	Global.is_coding_mode = false
 	selected_topic = topic_input.text.strip_edges()
 	if selected_topic.is_empty():
 		selected_topic = "programming"
 
 	Global.selected_topic = selected_topic
+	get_tree().change_scene_to_file("res://map/map.tscn")
+
+
+func _on_coding_pressed() -> void:
+	Global.is_coding_mode = true
+	Global.selected_topic = "coding"
 	get_tree().change_scene_to_file("res://map/map.tscn")

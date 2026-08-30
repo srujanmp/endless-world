@@ -56,6 +56,13 @@ var kbc_wrong_sound_player: AudioStreamPlayer
 @onready var fill_container: VBoxContainer = $Panel/VBoxContainer/FillContainer
 @onready var answer_input: LineEdit = $Panel/VBoxContainer/FillContainer/AnswerInput
 @onready var wordlock_container: HBoxContainer = $Panel/VBoxContainer/WordLockContainer
+var coding_container: VBoxContainer
+var coding_language: OptionButton
+var coding_editor: TextEdit
+var coding_output: TextEdit
+var coding_run_button: Button
+var coding_http_request: HTTPRequest
+const PISTON_EXECUTE_URL := "https://emkc.org/api/v2/piston/execute"
 
 # WordLock constants
 const WORDLOCK_LABEL_H := 60
@@ -120,6 +127,8 @@ func _hide_all_popups():
 	# Hide fill in blank
 	fill_container.visible = false
 	answer_input.text = ""
+	if coding_container:
+		coding_container.visible = false
 	
 	# Hide whack-a-mole
 	whack_container.visible = false
@@ -211,6 +220,7 @@ func _ready():
 		keyboard.key_pressed.connect(_on_custom_key_pressed)
 		keyboard.backspace_pressed.connect(_on_custom_backspace)
 		keyboard.enter_pressed.connect(_on_submit)
+	_setup_coding_ui()
 
 func _process(_delta):
 	if whack_active:
@@ -221,6 +231,114 @@ func _process(_delta):
 		hammer.visible = false
 		if Input.get_mouse_mode() != Input.MOUSE_MODE_VISIBLE:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+func _setup_coding_ui() -> void:
+	coding_container = VBoxContainer.new()
+	coding_container.visible = false
+	coding_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	coding_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	coding_container.custom_minimum_size = Vector2(0, 450)
+	fill_container.add_child(coding_container)
+
+	coding_language = OptionButton.new()
+	coding_language.add_item("Python", 0)
+	coding_language.add_item("JavaScript", 1)
+	coding_language.add_item("C++", 2)
+	coding_language.add_item("Java", 3)
+	coding_language.selected = 0
+	coding_language.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	coding_container.add_child(coding_language)
+
+	coding_editor = TextEdit.new()
+	coding_editor.custom_minimum_size = Vector2(0, 220)
+	coding_editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	coding_editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	coding_editor.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	coding_editor.placeholder_text = "Write your code here..."
+	coding_container.add_child(coding_editor)
+
+	coding_run_button = Button.new()
+	coding_run_button.text = "Run Code"
+	coding_run_button.focus_mode = Control.FOCUS_NONE
+	coding_run_button.pressed.connect(_on_run_code_pressed)
+	coding_container.add_child(coding_run_button)
+
+	coding_output = TextEdit.new()
+	coding_output.custom_minimum_size = Vector2(0, 140)
+	coding_output.editable = false
+	coding_output.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	coding_output.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	coding_output.placeholder_text = "Execution output will appear here..."
+	coding_container.add_child(coding_output)
+
+	coding_http_request = HTTPRequest.new()
+	add_child(coding_http_request)
+	coding_http_request.request_completed.connect(_on_code_request_completed)
+
+func _on_run_code_pressed() -> void:
+	if coding_editor.text.strip_edges().is_empty():
+		coding_output.text = "⚠ Please enter code before running."
+		return
+
+	var language := "python"
+	match coding_language.selected:
+		0:
+			language = "python"
+		1:
+			language = "javascript"
+		2:
+			language = "cpp"
+		3:
+			language = "java"
+
+	var payload := {
+		"language": language,
+		"version": "*",
+		"files": [
+			{"content": coding_editor.text}
+		]
+	}
+	var headers := ["Content-Type: application/json"]
+	var err := coding_http_request.request(PISTON_EXECUTE_URL, headers, HTTPClient.METHOD_POST, JSON.stringify(payload))
+	if err != OK:
+		coding_output.text = "❌ Failed to start request: %s" % error_string(err)
+	else:
+		coding_output.text = "⏳ Running..."
+
+func _on_code_request_completed(_result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var json :Variant= JSON.parse_string(body.get_string_from_utf8())
+	if typeof(json) != TYPE_DICTIONARY:
+		coding_output.text = "❌ Invalid response from execution server."
+		return
+
+	if response_code < 200 or response_code >= 300:
+		coding_output.text = "❌ Execution failed (HTTP %d)." % response_code
+		return
+
+	var output_parts: Array[String] = []
+
+	if json.has("compile"):
+		var compile_data: Dictionary = json["compile"]
+		var compile_out := str(compile_data.get("stdout", "")).strip_edges()
+		var compile_err := str(compile_data.get("stderr", "")).strip_edges()
+		if not compile_out.is_empty():
+			output_parts.append("Compile Output:\n" + compile_out)
+		if not compile_err.is_empty():
+			output_parts.append("Compile Errors:\n" + compile_err)
+
+	if json.has("run"):
+		var run_data: Dictionary = json["run"]
+		var run_out := str(run_data.get("stdout", "")).strip_edges()
+		var run_err := str(run_data.get("stderr", "")).strip_edges()
+		if not run_out.is_empty():
+			output_parts.append("Output:\n" + run_out)
+		if not run_err.is_empty():
+			output_parts.append("Errors:\n" + run_err)
+
+	if output_parts.is_empty():
+		coding_output.text = "✅ Execution finished. No output."
+	else:
+		coding_output.text = "\n\n".join(output_parts)
 
 func _on_custom_key_pressed(chars: String):
 	# Update LineEdit for Fill-in-the-blank
@@ -266,7 +384,7 @@ func _handle_wordle_input(chars: String):
 # OPEN POPUP WITH MCQs
 # =============================
 func open(solution: String, options: Array, heart_system: HeartSystem, map, question: String = ""):
-	if solution.is_empty():
+	if solution.is_empty() and Global.current_question_type != Global.QuestionType.CODING:
 		push_error("❌ Empty correct answer")
 		return
 
@@ -307,6 +425,8 @@ func open(solution: String, options: Array, heart_system: HeartSystem, map, ques
 			_open_wordlock()
 		Global.QuestionType.KBC:
 			_open_kbc(options)
+		Global.QuestionType.CODING:
+			_open_coding()
 
 func _open_whack(options: Array, solution: String):
 	whack_container.visible = true
@@ -692,6 +812,18 @@ func _open_wordle():
 	if keyboard: keyboard.visible = true # NEW: Show for Wordle
 	_build_wordle_grid()
 
+func _open_coding():
+	message.text = "Write code and run it"
+	fill_container.visible = true
+	answer_input.visible = false
+	if keyboard:
+		keyboard.visible = false
+	submit.visible = false
+	if coding_container:
+		coding_container.visible = true
+		coding_editor.text = ""
+		coding_output.text = ""
+
 
 # =============================
 # OPTION SELECT
@@ -737,6 +869,10 @@ func _on_submit():
 		
 		Global.QuestionType.KBC:
 			_kbc_process_answer(kbc_selected_answer)
+			return
+		
+		Global.QuestionType.CODING:
+			_on_run_code_pressed()
 			return
 
 # Helper to handle the logic for MCQ and Fill-in-blank

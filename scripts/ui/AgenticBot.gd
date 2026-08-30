@@ -257,4 +257,3 @@ func _on_animation_finished() -> void:
 			_state = _State.DONE
 			_done_timer = 0.0
 			_bot.play(ANIM_IDLE)
-

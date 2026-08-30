@@ -54,25 +54,3 @@ jobs:
         with:
           name: web
           path: build/web
-
-      - name: Install Butler
-        run: |
-          wget https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default -O butler.zip
-          unzip butler.zip
-          chmod +x butler
-          ./butler -V
-
-      - name: Publish to itch.io
-        env:
-          BUTLER_API_KEY: ${{ secrets.ITCHIO_API_KEY }}
-        run: |
-          ./butler login
-          ./butler push build/web endlessworlds/endless-world:html5
-
-      - name: Notify Discord Channel
-        if: success()
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        uses: Ilshidur/action-discord@0.3.0
-        with:
-          args: 'An Endless World update is available at https://endlessworlds.itch.io/endless-world. 🎮'

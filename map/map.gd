@@ -77,7 +77,18 @@ var tile_damage_timer: Timer
 # ==================================================
 func _ready():
 	Global.start_game()
-	Global.current_question_type = Global.QuestionType.values().pick_random()
+	if Global.is_coding_mode:
+		Global.current_question_type = Global.QuestionType.CODING
+	else:
+		var question_pool := [
+			Global.QuestionType.MCQ,
+			Global.QuestionType.FILL_BLANK,
+			Global.QuestionType.WORDLE,
+			Global.QuestionType.WHACK,
+			Global.QuestionType.WORD_LOCK,
+			Global.QuestionType.KBC
+		]
+		Global.current_question_type = question_pool.pick_random()
 	#Global.current_question_type=Global.QuestionType.KBC
 	# 🔧 APPLY SETTINGS
 	rain.rain_enabled = enable_rain
@@ -114,17 +125,18 @@ func _ready():
 	hearts.connect("player_died", _on_player_died)
 	create_death_overlay()
 
-	# 🧩 GEMINI
-	gemini.riddle_generated.connect(_on_riddle_generated)
-	gemini.generate_riddle()
+	if not Global.is_coding_mode:
+		# 🧩 GEMINI
+		gemini.riddle_generated.connect(_on_riddle_generated)
+		gemini.generate_riddle()
 
-	tasks.hint_collected.connect(func():
-		riddle_ui.unlock_next_hint()
-		# Tell the bot to speak the newly unlocked hint
-		var hint_idx := riddle_ui.unlocked_count - 1
-		if agentic_bot != null and hint_idx < riddle_ui.hints.size():
-			agentic_bot.speak(riddle_ui.hints[hint_idx])
-	)
+		tasks.hint_collected.connect(func():
+			riddle_ui.unlock_next_hint()
+			# Tell the bot to speak the newly unlocked hint
+			var hint_idx := riddle_ui.unlocked_count - 1
+			if agentic_bot != null and hint_idx < riddle_ui.hints.size():
+				agentic_bot.speak(riddle_ui.hints[hint_idx])
+		)
 
 	# 🤖 AGENTIC BOT
 	agentic_bot = AgenticBot.new()
@@ -136,6 +148,10 @@ func _ready():
 	_start_fact_timer()
 
 func _on_well_interacted():
+	if Global.is_coding_mode:
+		answer_popup.open("coding", [], hearts, self, "")
+		return
+		
 	if current_options.is_empty():
 		push_error("❌ No MCQ options available")
 		return

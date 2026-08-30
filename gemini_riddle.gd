@@ -26,9 +26,8 @@ const FALLBACK_RIDDLES: Array[Dictionary] = [
 	}
 ]
 
-@onready var http_search: HTTPRequest = HTTPRequest.new()
+@onready var http_server: HTTPRequest = HTTPRequest.new()
 @onready var http_scrape: HTTPRequest = HTTPRequest.new()
-@onready var http_groq: HTTPRequest = HTTPRequest.new()
 
 # ================= STORED DATA =================
 var riddle_data: Dictionary = {
@@ -42,37 +41,43 @@ var riddle_data: Dictionary = {
 
 var current_topic: String = ""
 var current_difficulty: String = ""
-var scrape_target_url: String = ""
-var web_data: String = ""
 
 var _log_timer: Timer
 @onready var log_label: Label = get_node_or_null("../RiddleUI/Log")
 
 signal riddle_generated(data: Dictionary)
 
+# ================= LOG & LOADING STATE =================
+var log_history: Array = []
+var _loading_bar: ColorRect = null
+var _loading_bg: ColorRect = null
+var _is_loading: bool = false
+var _loading_progress: float = 0.0
+var _loading_target: float = 0.0
+
 # =================================================
 func _ready() -> void:
-	# 1. SETUP TIMER FIRST
+	# 1. SETUP TIMER
 	_log_timer = Timer.new()
-	_log_timer.wait_time = 3.0
+	_log_timer.wait_time = 20.0
 	_log_timer.one_shot = true
 	_log_timer.timeout.connect(_on_log_timer_timeout)
 	add_child(_log_timer)
 	if log_label: log_label.hide()
 
-	# 2. NOW YOU CAN CALL LOGS
+	# 2. LOG
 	print("[GeminiRiddle] Initializing...")
 	add_log("Initializing...")
 
-	# Add HTTP nodes
-	add_child(http_search)
+	# 3. HTTP NODES
+	add_child(http_server)
+	http_server.request_completed.connect(_on_server_response)
+	
 	add_child(http_scrape)
-	add_child(http_groq)
-
-	# Connect signals
-	http_search.request_completed.connect(_on_search_response)
 	http_scrape.request_completed.connect(_on_scrape_response)
-	http_groq.request_completed.connect(_on_groq_response)
+
+	# 4. CREATE LOADING BAR
+	_create_loading_bar()
 
 # =================================================
 func generate_riddle() -> void:
@@ -84,407 +89,109 @@ func generate_riddle() -> void:
 	current_topic = Global.selected_topic if "selected_topic" in Global else "Programming"
 	
 	print("[GeminiRiddle] Requesting Riddle. Topic: %s | Difficulty: %s" % [current_topic, current_difficulty])
-	add_log("Generating: %s (%s)" % [current_topic, current_difficulty])
-	# Start the scraping process
-	_resolve_topic_with_llm(current_topic)
+	log_history.clear()
+	add_log("🔍 Searching Web for: %s..." % current_topic)
+	
+	start_loading()
+	_set_loading_target(50.0)  # 0→50%: Web Scraping phase
+	_request_scrape(current_topic)
 
-func _resolve_topic_with_llm(topic: String) -> void:
-	var env := EnvLoader.load_env("res://.env")
-	var api_key :Variant = env.get("GROQ_API_KEY", "")
-	
-	if api_key.is_empty():
-		push_error("[GeminiRiddle] GROQ_API_KEY missing, using original topic")
-		resolved_search_topic = topic
-		_scrape_universal(resolved_search_topic)
-		return
-	
-	var prompt := """
-	You are a topic resolver.
-	Given a user topic, do the following:
-	1. Generate 5 related subtopics.
-	2. Randomly choose ONE subtopic.
-	
-	Return STRICT JSON only:
-	{
-	  "general_topic": "string",
-	  "chosen_subtopic": "string"
-	}
-	
-	User topic: "%s"
-	""" % topic
-	
+func _request_scrape(topic: String) -> void:
 	var body := {
-		"model": "openai/gpt-oss-120b",
-		"messages": [{"role": "user", "content": prompt}],
-		"temperature": 0.4,
-		"response_format": {"type": "json_object"}
+		"topic": topic
 	}
 	
 	var headers: PackedStringArray = [
-		"Content-Type: application/json",
-		"Authorization: Bearer %s" % api_key
+		"Content-Type: application/json"
 	]
 	
-	http_groq.request(
-		"https://api.groq.com/openai/v1/chat/completions",
+	var err := http_scrape.request(
+		"http://localhost:8000/api/scrape",
 		headers,
 		HTTPClient.METHOD_POST,
 		JSON.stringify(body)
 	)
+	
+	if err != OK:
+		push_error("[GeminiRiddle] Failed to start request to python scrape server.")
+		_use_fallback()
 
+func _on_scrape_response(_result, code, _headers, body) -> void:
+	if code == 200:
+		var text: String = body.get_string_from_utf8()
+		var data: Variant = JSON.parse_string(text)
+		if typeof(data) == TYPE_DICTIONARY and data.has("url"):
+			var chunks = data.get("chunks_stored", 0)
+			add_log("📄 Scraped %d chunks" % chunks)
+			print("[GeminiRiddle] Scraped and stored %d chunks from %s" % [chunks, data["url"]])
+		else:
+			add_log("📄 Web search finished")
+		_set_loading_target(70.0)  # 50→70%: Scraped data received
+	else:
+		push_warning("[GeminiRiddle] Scrape server returned code %d. Proceeding anyway." % code)
+		add_log("⚠️ Scrape failed, using internal knowledge...")
+		_set_loading_target(65.0)  # Still advance past scraping phase
+		
+	# Now that scraping is done, we generate the riddle
+	add_log("🧠 Generating Riddle...")
+	_set_loading_target(90.0)  # 70→90%: Generating question
+	_request_riddle_from_server(current_topic, current_difficulty)
 
-# ================= UNIVERSAL SEARCH & SCRAPE =================
-func _scrape_universal(topic: String) -> void:
-	# Initialize debug file
-	var file := FileAccess.open(DEBUG_FILE, FileAccess.WRITE)
-	if file:
-		file.store_string("--- SCRAPE LOG FOR TOPIC: %s ---\n\n" % topic)
-		file.close()
-	
-	print("\n--- Searching Serper.dev for: %s ---" % topic)
-	add_log("Searching Web for: "+ topic)
-
-	
-	# Load API key from environment
-	var env := EnvLoader.load_env("res://.env")
-	var serper_api_key :Variant= env.get("SERPER_API_KEY", "")
-	
-	if serper_api_key.is_empty():
-		push_error("[GeminiRiddle] SERPER_API_KEY not found in .env file")
-		_handle_scrape_fallback("SERPER_API_KEY not found")
-		return
-	
-	# Prepare Serper API request
-	var search_body := {
-		"q": "%s quiz questions and answers" % topic
+func _request_riddle_from_server(topic: String, difficulty: String) -> void:
+	var body := {
+		"topic": topic,
+		"difficulty": difficulty
 	}
 	
 	var headers: PackedStringArray = [
-		"X-API-KEY: %s" % serper_api_key,
 		"Content-Type: application/json"
 	]
 	
-	var err := http_search.request(
-		"https://google.serper.dev/search",
+	var err := http_server.request(
+		"http://localhost:8000/api/generate_riddle",
 		headers,
 		HTTPClient.METHOD_POST,
-		JSON.stringify(search_body)
+		JSON.stringify(body)
 	)
 	
 	if err != OK:
-		push_error("[GeminiRiddle] Serper search request failed to start.")
-		_handle_scrape_fallback("Search request failed to start")
-
-# =================================================
-func _on_search_response(_result, code, _headers, body) -> void:
-	if code != 200:
-		_handle_scrape_fallback("Search returned code %d" % code)
-		return
-	
-	var search_json: String = body.get_string_from_utf8()
-	var search_data: Variant = JSON.parse_string(search_json)
-	
-	if typeof(search_data) != TYPE_DICTIONARY:
-		_handle_scrape_fallback("Invalid Serper API response")
-		return
-	
-	# Get the first organic result link
-	if not search_data.has("organic") or not search_data["organic"] is Array:
-		_handle_scrape_fallback("No organic results in Serper response")
-		return
-	
-	var organic_results: Array = search_data["organic"]
-	if organic_results.size() == 0:
-		_handle_scrape_fallback("Empty organic results")
-		return
-	
-	# Find first non-PDF result
-	scrape_target_url = ""
-	for result in organic_results:
-		if typeof(result) != TYPE_DICTIONARY or not result.has("link"):
-			continue
-		
-		var url: String = result["link"]
-		# Skip PDF files and other non-HTML formats
-		if url.to_lower().ends_with(".pdf") or url.to_lower().ends_with(".doc") or url.to_lower().ends_with(".docx"):
-			print("Skipping non-HTML file: %s" % url)
-			continue
-		
-		scrape_target_url = url
-		break
-	
-	if scrape_target_url.is_empty():
-		_handle_scrape_fallback("No suitable HTML results found (all PDFs/docs)")
-		return
-	
-	print("Scraping: %s" % scrape_target_url)
-	add_log("Scraping:"+ scrape_target_url)
-	
-	# Append to debug file
-	var file := FileAccess.open(DEBUG_FILE, FileAccess.READ_WRITE)
-	if file:
-		file.seek_end()
-		file.store_string("SOURCE URL: %s\n\n" % scrape_target_url)
-		file.close()
-	
-	# Now scrape the target page
-	var headers: PackedStringArray = [
-		"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-	]
-	var err := http_scrape.request(scrape_target_url, headers, HTTPClient.METHOD_GET)
-	
-	if err != OK:
-		_handle_scrape_fallback("Scrape request failed to start")
-
-# =================================================
-func _on_scrape_response(_result, code, _headers, body) -> void:
-	if code != 200:
-		_handle_scrape_fallback("Scrape returned code %d" % code)
-		return
-	
-	var page_html: String = body.get_string_from_utf8()
-	var cleaned_text: String = _extract_text_from_html(page_html)
-	
-	# Limit to 5000 characters
-	web_data = cleaned_text.substr(0, 5000)
-	
-	# Append to debug file
-	var file := FileAccess.open(DEBUG_FILE, FileAccess.READ_WRITE)
-	if file:
-		file.seek_end()
-		file.store_string(web_data)
-		file.close()
-	
-	# Now call Groq API with the web data
-	print("[GeminiRiddle] Scraped %d characters of text" % web_data.length())
-	add_log("Scraped %s chars" % str(web_data.length()))
-	_call_groq_api(web_data)
-
-# =================================================
-func _extract_text_from_html(html: String) -> String:
-	# Basic HTML tag removal and text extraction
-	# This is a simplified version - removes common tags
-	var text := html
-	
-	# Remove script, style, nav, footer tags and their content
-	var tags_to_remove := ["script", "style", "nav", "footer", "iframe"]
-	for tag in tags_to_remove:
-		var pattern_start := "<%s" % tag
-		var pattern_end := "</%s>" % tag
-		var start_pos := 0
-		
-		while true:
-			start_pos = text.find(pattern_start, start_pos)
-			if start_pos == -1:
-				break
-			var end_pos := text.find(pattern_end, start_pos)
-			if end_pos == -1:
-				break
-			text = text.substr(0, start_pos) + text.substr(end_pos + pattern_end.length())
-	
-	# Remove all remaining HTML tags
-	var result := ""
-	var in_tag := false
-	
-	for i in range(text.length()):
-		var c := text[i]
-		if c == '<':
-			in_tag = true
-		elif c == '>':
-			in_tag = false
-		elif not in_tag:
-			result += c
-	
-	# Clean up whitespace
-	result = result.replace("\n", " ").replace("\r", " ").replace("\t", " ")
-	
-	# Reduce multiple spaces to single space
-	while result.find("  ") != -1:
-		result = result.replace("  ", " ")
-	
-	return result.strip_edges()
-
-# =================================================
-func _handle_scrape_fallback(error_msg: String) -> void:
-	var fallback_msg := "Scraping failed (%s). Falling back to LLM internal knowledge." % error_msg
-	print("[GeminiRiddle] %s" % fallback_msg)
-	
-	# Append to debug file
-	var file := FileAccess.open(DEBUG_FILE, FileAccess.READ_WRITE)
-	if file:
-		file.seek_end()
-		file.store_string("\n\nFALLBACK TRIGGERED: %s" % fallback_msg)
-		file.close()
-	
-	# Call Groq API without web data (null)
-	_call_groq_api("")
-
-# =================================================
-func _call_groq_api(web_data_param: String) -> void:
-	# Load API key from environment
-	var env := EnvLoader.load_env("res://.env")
-	var api_key :Variant= env.get("GROQ_API_KEY", "")
-	
-	if api_key.is_empty():
-		push_error("[GeminiRiddle] GROQ_API_KEY not found in .env file")
-		_use_fallback()
-		return
-	
-	print("[GeminiRiddle] Calling Groq API...")
-	
-	# Dynamic Prompt logic based on whether web_data exists
-	var source_context: String
-	if web_data_param.is_empty():
-		source_context = 'No web data available. Use your internal knowledge about "%s".' % current_topic
-	else:
-		source_context = "SOURCE MATERIAL FROM WEB:\n%s" % web_data_param
-	
-	var web_data_condition := "" if web_data_param.is_empty() else 'Base it on the SOURCE MATERIAL provided.'
-	var source_type := "internal_knowledge" if web_data_param.is_empty() else "web"
-	print("current topic is: ",current_topic)
-	var effective_topic := resolved_search_topic if not resolved_search_topic.is_empty() else current_topic
-	print("sub topic chosen by llm : ",effective_topic)
-	#add_log("current topic is: "+current_topic+"\nsub topic chosen by llm : "+effective_topic)
-	
-	var prompt := """
-	SYSTEM: You are a technical question creator. You must follow the Task exactly as written, recheck the conditions  
-	CRITICAL: The "solution" MUST be exactly one of the items in the "options" array.
-	%s
-
-	TASK:
-	1. Create a question about "%s". %s
-	2. The "solution" MUST be a single word.
-	3. Generate 4 "options" for the user to choose from.
-	4. CRITICAL: The "solution" MUST be exactly one of the items in the "options" array.
-	5. Difficulty: %s.
-	6. Provide 4 hints exactly.
-	7. Topic is given by user so dont make answer as topic itself
-	8. insert a new line if the question is longer than 10 words
-	9. keep question length less than 50 words
-	10.keep the output logically correct
-	11. if the topic is not academic related then question should be a riddle
-	
-	OUTPUT STRICT JSON:
-	{
-	  "riddle": "string",
-	  "options": ["opt1", "opt2", "opt3", "opt4"],
-	  "solution": "string",
-	  "hints": ["hint1", "hint2", "hint3", "hint4"],
-	  "fact_reference": "Short sentence explaining the fact used",
-	  "source": "%s"
-	}""" % [source_context, effective_topic, web_data_condition, current_difficulty, source_type]
-	
-	print("[GeminiRiddle] Prompt length: %d characters" % prompt.length())
-	
-	var request_body := {
-		#"model": "llama-3.1-8b-instant",
-		#"model": "llama-3.3-70b-versatile",
-		"model": "openai/gpt-oss-120b",
-		
-		
-		"messages": [{"role": "user", "content": prompt}],
-		"temperature": 0.5,
-		"response_format": {"type": "json_object"}
-	}
-	
-	var headers: PackedStringArray = [
-		"Content-Type: application/json",
-		"Authorization: Bearer %s" % api_key
-	]
-	
-	var err := http_groq.request(
-		"https://api.groq.com/openai/v1/chat/completions",
-		headers,
-		HTTPClient.METHOD_POST,
-		JSON.stringify(request_body)
-	)
-	
-	if err != OK:
-		push_error("[GeminiRiddle] Groq API request failed to start.")
+		push_error("[GeminiRiddle] Failed to start request to python server.")
 		_use_fallback()
 
 # =================================================
-func _on_groq_response(_result, code, _headers, body) -> void:
-	
-		# ---- Topic resolution response ----
-	if current_topic != "" and resolved_search_topic == "":
-		var text :Variant= body.get_string_from_utf8()
-		var data :Variant= JSON.parse_string(text)
-		
-		if typeof(data) == TYPE_DICTIONARY and data.has("choices"):
-			var content :Variant= data["choices"][0]["message"]["content"]
-			var clean := _remove_control_characters(content)
-			var parsed :Variant= JSON.parse_string(clean)
-			
-			if typeof(parsed) == TYPE_DICTIONARY and parsed.has("chosen_subtopic"):
-				resolved_search_topic = parsed["chosen_subtopic"]
-				print("[GeminiRiddle] Resolved search topic:", resolved_search_topic)
-				add_log("Resolved search topic: "+ resolved_search_topic)
-
-				_scrape_universal(resolved_search_topic)
-				return
-
-	
-	print("[GeminiRiddle] Groq Response received. Code: ", code)
-	
+func _on_server_response(_result, code, _headers, body) -> void:
 	if code != 200:
-		var error_text: String = body.get_string_from_utf8()
-		push_warning("[GeminiRiddle] Groq API error (code %d): %s" % [code, error_text])
+		push_warning("[GeminiRiddle] Server returned code %d" % code)
 		_use_fallback()
 		return
-	
+		
 	var text: String = body.get_string_from_utf8()
 	var data: Variant = JSON.parse_string(text)
 	
-	if typeof(data) != TYPE_DICTIONARY or not data.has("choices"):
-		push_error("[GeminiRiddle] Invalid Groq API response structure.")
-		_use_fallback()
-		return
-	
-	var content: String = data["choices"][0]["message"]["content"]
-	
-	# Sanitize to prevent JSON parse errors from control characters
-	var sanitized_content: String = _remove_control_characters(content)
-	var final_riddle: Variant = JSON.parse_string(sanitized_content)
-	
-	if typeof(final_riddle) == TYPE_DICTIONARY and final_riddle.has("riddle"):
-		riddle_data = final_riddle
-		
-		# Append to debug file
-		var file := FileAccess.open(DEBUG_FILE, FileAccess.READ_WRITE)
-		if file:
-			file.seek_end()
-			file.store_string("\n\n--- LLM FINAL OUTPUT ---\n%s" % JSON.stringify(riddle_data, "\t"))
-			file.close()
-		
+	if typeof(data) == TYPE_DICTIONARY and data.has("riddle"):
+		riddle_data = data
 		print("Riddle generated via %s." % riddle_data.get("source", "unknown"))
+		add_log("✅ Question Ready!")
+		_set_loading_target(100.0)  # 90→100%: Question generated
+		stop_loading()
 		_log_riddle_details(riddle_data)
 		emit_signal("riddle_generated", riddle_data)
 	else:
-		push_error("[GeminiRiddle] Received invalid JSON structure from LLM.")
+		push_error("[GeminiRiddle] Invalid format from python server")
 		_use_fallback()
-
-# =================================================
-func _remove_control_characters(text: String) -> String:
-	var result := ""
-	for i in range(text.length()):
-		var c := text[i]
-		var code := c.unicode_at(0)
-		# Remove control characters (0x00-0x1F and 0x7F-0x9F)
-		if (code >= 0x20 and code < 0x7F) or code >= 0xA0:
-			result += c
-	return result
 
 # =================================================
 func _use_fallback() -> void:
 	print("[GeminiRiddle] ⚠️ ACTIVATING FALLBACK.")
 	riddle_data = FALLBACK_RIDDLES.pick_random().duplicate(true)
+	add_log("⚠️ Using fallback question")
+	_set_loading_target(100.0)  # Complete the bar
+	stop_loading()
 	_log_riddle_details(riddle_data)
 	emit_signal("riddle_generated", riddle_data)
 
 # =================================================
 func _log_riddle_details(data: Dictionary) -> void:
-	add_log("Generated Question \nClick 🔎");
 	print("------------------------------------------")
 	print("[GeminiRiddle] DATA SOURCE: ", data.get("source", "unknown"))
 	print("QUESTION: ", data.get("riddle", "N/A"))
@@ -493,13 +200,114 @@ func _log_riddle_details(data: Dictionary) -> void:
 	print("FACT: ", data.get("fact_reference", "N/A"))
 	print("------------------------------------------")
 
+# ================= LOADING BAR =================
+const VISTA_SHIMMER_SHADER := """
+shader_type canvas_item;
+
+void fragment() {
+	// Subtle top-to-bottom gradient for glassy Vista depth
+	float depth = 1.0 + UV.y * 0.15 - step(0.45, UV.y) * 0.3;
+
+	// Flowing shimmer sweep (Vista-style glowing highlight)
+	float shimmer_pos = fract(TIME * 0.35);
+	float shimmer_width = 0.22;
+	float shimmer = smoothstep(shimmer_width, 0.0, abs(UV.x - shimmer_pos));
+	// Second, fainter trailing shimmer for extra flow
+	float shimmer2_pos = fract(TIME * 0.35 - 0.35);
+	float shimmer2 = smoothstep(shimmer_width * 0.6, 0.0, abs(UV.x - shimmer2_pos)) * 0.35;
+
+	COLOR.rgb *= depth;
+	COLOR.rgb += vec3(shimmer * 0.45 + shimmer2 * 0.2);
+}
+"""
+
+func _create_loading_bar() -> void:
+	# Create a separate CanvasLayer for the loading bar so it's always on top
+	var canvas = CanvasLayer.new()
+	canvas.layer = 100
+	canvas.name = "LoadingBarLayer"
+	add_child(canvas)
+
+	# Background bar (dark, slightly taller for Vista look)
+	_loading_bg = ColorRect.new()
+	_loading_bg.color = Color(0.08, 0.08, 0.12, 0.7)
+	_loading_bg.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_loading_bg.custom_minimum_size.y = 8
+	_loading_bg.size.y = 8
+	_loading_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_loading_bg.hide()
+	canvas.add_child(_loading_bg)
+
+	# Green fill bar with Vista shimmer shader
+	_loading_bar = ColorRect.new()
+	_loading_bar.color = Color(0.18, 0.82, 0.35, 1.0)
+	_loading_bar.position = Vector2.ZERO
+	_loading_bar.size = Vector2(0, 8)
+	_loading_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_loading_bar.hide()
+	# Apply Vista shimmer shader
+	var shader = Shader.new()
+	shader.code = VISTA_SHIMMER_SHADER
+	var mat = ShaderMaterial.new()
+	mat.shader = shader
+	_loading_bar.material = mat
+	canvas.add_child(_loading_bar)
+
+func _set_loading_target(target: float) -> void:
+	_loading_target = clampf(target, _loading_progress, 100.0)
+
+func start_loading() -> void:
+	_loading_progress = 0.0
+	_loading_target = 0.0
+	_is_loading = true
+	if _loading_bg: _loading_bg.show()
+	if _loading_bar:
+		_loading_bar.size.x = 0
+		_loading_bar.show()
+
+func stop_loading() -> void:
+	_is_loading = false
+	_loading_target = 100.0
+	if _loading_bar:
+		var screen_w = get_viewport().get_visible_rect().size.x
+		# Smoothly animate to 100% then fade out
+		var tween = create_tween()
+		tween.tween_property(_loading_bar, "size:x", screen_w, 0.6) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tween.tween_interval(0.4)
+		tween.tween_property(_loading_bar, "modulate:a", 0.0, 0.5)
+		if _loading_bg:
+			tween.tween_property(_loading_bg, "modulate:a", 0.0, 0.3)
+		tween.tween_callback(_hide_loading)
+
+func _hide_loading() -> void:
+	if _loading_bar:
+		_loading_bar.hide()
+		_loading_bar.modulate.a = 1.0
+	if _loading_bg:
+		_loading_bg.hide()
+		_loading_bg.modulate.a = 1.0
+
+func _process(delta: float) -> void:
+	if _is_loading and _loading_bar:
+		var screen_w = get_viewport().get_visible_rect().size.x
+		# Smooth lerp toward the milestone target — very slow crawl for long phases
+		_loading_progress = lerp(_loading_progress, _loading_target, delta * 0.08)
+		# Clamp tiny overshoots
+		if abs(_loading_progress - _loading_target) < 0.05:
+			_loading_progress = _loading_target
+		_loading_bar.size.x = (screen_w * _loading_progress) / 100.0
 
 # ================= LOG SYSTEM =================
 func add_log(message: String) -> void:
 	if not log_label:
 		return
 
-	log_label.text = message
+	log_history.append(message)
+	if log_history.size() > 5:
+		log_history.pop_front()
+
+	log_label.text = "\n".join(log_history)
 	log_label.show()
 
 	# Restart idle timer every time a log comes
@@ -507,5 +315,12 @@ func add_log(message: String) -> void:
 	_log_timer.start()
 
 func _on_log_timer_timeout() -> void:
+	# Fade out instead of instantly hiding
 	if log_label:
-		log_label.hide()
+		var tween = create_tween()
+		tween.tween_property(log_label, "modulate:a", 0.0, 1.5)
+		tween.tween_callback(func():
+			log_label.hide()
+			log_label.modulate.a = 1.0
+			log_history.clear()
+		)
