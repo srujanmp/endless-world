@@ -1,4 +1,5 @@
 # Godot 4+ specific ignores
+/.vscode
 /android/
 .env
 /web-scraper-tool/node_modules
@@ -22,3 +23,10 @@ export_presets.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# Python server ignores
+/python_server/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
