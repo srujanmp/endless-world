@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://daqkdbg8j6fwf"]
+
+[ext_resource type="Script" uid="uid://brnwtdyobp3y2" path="res://ai/ai_question_generator.gd" id="1_yyrds"]
+
+[node name="AiQuestionGenerator" type="Node"]
+script = ExtResource("1_yyrds")
+
+[node name="HTTPRequest" type="HTTPRequest" parent="."]

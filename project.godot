@@ -11,15 +11,15 @@ config_version=5
 [application]
 
 config/name="endless-worlds"
-run/main_scene="res://HomeScreen.tscn"
+run/main_scene="res://ui/home_screen/home_screen.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
 
-Global="*res://scripts/utils/Global.gd"
-DifficultyRl="*res://ai/DifficultyRL.gd"
-env_loader="*res://scripts/utils/env_loader.gd"
+Global="*res://core/global.gd"
+DifficultyRl="*res://ai/difficulty_rl.gd"
+env_loader="*res://core/env_loader.gd"
 
 [display]
 

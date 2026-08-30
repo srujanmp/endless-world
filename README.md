@@ -1,168 +1,84 @@
-# FEATURE
+# Endless Worlds
 
-## Project Summary
+**Endless Worlds** is an educational 2D top-down exploration game built in **Godot 4** that merges environmental sandbox gameplay with advanced AI-powered learning. 
 
-**Endless Worlds** is an educational 2D top-down exploration game built in **Godot** that combines environmental gameplay with AI-powered learning. Players navigate a procedurally-generated island world while solving AI-generated riddles and programming-focused educational challenges. The game leverages the **Groq API (LLM integration)** to dynamically create context-specific riddles about user-selected topics like programming, mathematics, or other subjects.
-
-The core gameplay loop involves exploring a tile-based world with varied terrain (grass, dirt, clay, water, lava), collecting hint pickups scattered across the map, and answering riddles to progress through levels. The game features a complete day–night cycle that dynamically adjusts world lighting and spawns decorative elements like flowers and trees.
-
-Environmental immersion includes weather systems (rain with parallax effects), water mechanics where players can wade and sink visually, and interactive NPCs like wells that provide context.
-
-Score and progression tracking motivate players through a level-based system with high score persistence. The educational component is deeply integrated—every interaction reinforces learning through gamification. The project emphasizes visual polish with proper depth sorting, sprite animations, particle effects, and responsive controls supporting both keyboard and gamepad input.
+Players navigate a procedurally-generated island world while solving AI-generated riddles and programming-focused educational challenges. Unlike static educational games, Endless Worlds leverages **Live Web Scraping**, **LLM Integration (Groq API)**, **Reinforcement Learning (RL)**, and **Live Code Execution** to create a deeply dynamic, personalized, and context-aware learning environment.
 
 ---
 
-## Feature List
+## 🌟 Key Features
 
-### Core Gameplay
-- **2D Top-Down Exploration:** Free-roaming player movement across procedurally-generated islands  
-- **Procedural World Generation:** Simplex noise-based terrain with connected islands, water borders, and varied biomes  
-- **Tile-Based World:** Multiple terrain types (grass, dirt, clay, mud, sand, lava, magma, water)  
-- **Character Movement:** Walking/sprinting with dynamic speed adjustments  
-- **Water Physics:** Depth-based visual sinking, movement slowdown in water, splash particle effects  
+### 🧠 Advanced AI & Learning Systems
+- **Dynamic Content Generation:** Uses a Python backend to web-scrape context for user-selected topics, then uses the Groq API to generate unique riddles on the fly.
+- **Reinforcement Learning (RL) Difficulty:** A built-in Q-Learning algorithm (`DifficultyRL`) analyzes your success rate and hint usage to dynamically adjust the difficulty of questions, ensuring you stay in the optimal learning flow.
+- **Live Code Execution:** Integrated with the Piston API, allowing players to execute and validate real programming code directly within the game's UI.
+- **Agentic Bot & Learning Journal:** Features an AI assistant (Agentic Bot) and a Learning Journal that tracks solved riddles, learned concepts, definitions, and real-world examples.
+- **Progressive Scoring:** Gamified learning with stats (Logic, Memory) instead of just XP.
 
----
+### 🌍 World & Exploration
+- **Procedural Generation:** Simplex noise-based terrain generation featuring diverse biomes (grass, dirt, clay, magma, water) and connected islands.
+- **Dynamic Environment:** A fully realized day-night cycle, dynamic lighting systems, and weather systems (including multi-layer parallax rain).
+- **Immersive Physics:** Depth-based visual sinking in water, movement slowdowns, splash particle effects, and procedural object placement (flowers, trees, interactive wells, hint pickups).
+- **Entity Mechanics:** Smooth top-down player movement with sprinting, camera shake, and animated footstep trails.
 
-### Educational & AI Features
-- **AI-Generated Riddles:** Integration with Groq LLM API for dynamic, context-aware riddle generation  
-- **Topic Selection:** User-selectable learning topics (default: programming)  
-- **Progressive Difficulty:** Level-based progression system tied to riddle solutions  
-- **Hint System:** Collectible hint pickups scattered on the map to aid riddle solving  
-- **Fallback Riddles:** 6 pre-written programming riddles as LLM fallback  
-- **Answer Validation:** Case-insensitive answer checking with immediate feedback  
-
----
-
-### Environment & Atmosphere
-- **Day-Night Cycle:** Dynamic time progression with color transitions between day/night states  
-- **Dynamic Lighting:** Automatic lighting adjustments at dawn, day, dusk, and night  
-- **Weather System:** Rain particle effects with parallax (far/near layers) and intensity transitions  
-- **Decorative Spawners:**  
-  - Random flower placement on grass tiles with varied textures and rotations  
-  - Tree spawning system  
-- **Depth Sorting:** Foot-based Z-indexing for proper sprite layering without performance lag  
+### 🎮 Interface & Accessibility
+- **Multi-Input Support:** Seamlessly supports Keyboard/Mouse, Gamepads, and Touch devices (via Virtual Joystick).
+- **Custom Virtual Keyboard:** Fully integrated virtual keyboard for accessibility and mobile support.
+- **Polished UI:** Immersive HUDs, interactive popup dialogs, animated hint bulbs, and custom typography.
 
 ---
 
-### Player Progression
-- **Score System:** Dynamic scoring with answer bonuses (50 points per riddle)  
-- **Level Progression:** Level advancement on correct answers  
-- **High Score Tracking:** Persistent high score across sessions  
-- **Home Screen:** Main menu with score display, high score, current level, and topic input  
+## 📁 How to Read the Folder Structure
+
+The project has been deeply refactored into a scalable, feature-based modular architecture. Instead of separating scripts and scenes blindly, files are grouped by their logical function in the game. 
+
+```text
+endless-world/
+├── core/                  # The backbone: Autoloads, Globals, and environment managers.
+│   ├── global.gd          # Persistent game state and configuration.
+│   ├── env_loader.gd      # Loads secrets from the .env file.
+│   └── ambience_manager.gd
+│
+├── map_components/        # The procedural world generator, tilemaps, day/night cycles,
+│                          # weather (rain), entity spawners (trees, fireflies, flowers),
+│                          # and interactable world items (Wells, Hint Pickups, Water Bubbles).
+│
+├── player/                # Player scenes, movement logic, and camera effects.
+│
+├── ai/                    # 🧠 The brain of the game:
+│   ├── difficulty_rl.gd          # Reinforcement Learning (Q-Learning) engine.
+│   ├── rl_overlay.gd             # UI overlay for debugging the RL state.
+│   ├── ai_question_generator.tscn # Web scraping and LLM API bridge.
+│   └── agentic_bot.gd            # AI assistant logic.
+│
+├── ui/                    # All User Interface screens and components.
+│   ├── gameplay/          # In-game HUD (Hearts, Joystick, Tasks).
+│   ├── home_screen/       # Main Menu and topic selection.
+│   ├── journal/           # The Learning Journal for reviewing concepts.
+│   ├── answerpopups/      # The riddle answering interface and code execution.
+│   ├── questionhintsetup/ # Riddle interaction UI and Hint Bulbs.
+│   ├── tutorial/          # Onboarding overlays.
+│   └── virtual_keyboard/  # On-screen keyboard for mobile/accessibility.
+│
+├── assets/                # Static visual and audio assets (fonts, images).
+├── resources/             # Godot resource files (e.g., TileSets).
+├── shaders/               # GLSL/Godot shaders (Fog, Screen Blur).
+└── python_server/         # Fastapi/Python backend for web scraping.
+```
 
 ---
 
-### Interactive Elements
-- **Interactive Well:** NPC-like structures in the world  
-- **Hint Pickups:** Collectable items with minimum spacing to prevent clustering  
-- **Answer Popup UI:** Focused input interface for riddle answers with submit/close functionality  
+## 🚀 Setup Instructions
+
+1. **Godot 4**: Ensure you have Godot 4.x installed.
+2. **Environment Variables**: Create a `.env` file in the root directory containing your necessary API keys (e.g., Groq API). You can use `test.env` as a template.
+3. **Python Backend (Optional but recommended)**: Navigate to `python_server/`, install the dependencies from your virtual environment, and run the backend to enable live web-scraping for riddles.
+4. **Play**: Open `project.godot` in the engine and run the project!
 
 ---
 
-### Controls & Input
-- **Keyboard Support:** WASD for movement, arrow keys as fallback  
-- **Gamepad Support:** D-pad and analog stick compatible  
-- **Sprint Mechanic:** Shift key for speed boost  
-- **Virtual Joystick:** On-screen UI joystick for mobile/touch compatibility  
-
----
-
-### Visual Polish
-- **Animated Sprites:** Frame-based character animations for directional movement  
-- **Sprite Tinting:** Color modulation in water with depth-based blue tinting  
-- **Particle Effects:** Water bubbles, rain, weather visuals  
-- **UI Polish:** Custom fonts (Jersey10, Noto Color Emoji), opacity controls  
-- **Parallax Effects:** Multi-layer rain rendering for depth perception  
-
----
-
-### Technical Features
-- **Environment File Loading:** `.env` file support for API key management  
-- **HTTP Requests:** Async LLM API calls via `HTTPRequest` nodes  
-- **Global Autoload:** Persistent game state management via Global singleton  
-- **Modular Architecture:** Separate scripts for systems (time, weather, spawning, player physics)  
-- **Scene Management:** Proper scene transitions (Home → Map → Home loop)  
-
----
-
-## ADDITIONAL FEATURES
-
-### 1. Concept Card UI
-- After solving:
-  - Show concept name  
-  - Short explanation  
-  - Real-world example  
-- Save it in **Learning Journal**
-
-### 2. Learning Journal
-Add a **Learning Journal UI** that stores everything learned.
-
-**What it contains:**
-- Solved riddles  
-- Learned concepts  
-- Definitions  
-- Diagrams (later)  
-
----
-
-### 3. Wrong Answer Feedback
-- Show why it’s wrong  
-- Give guided hint  
-
----
-
-### 4. Hint Challenges
-- Timed riddles  
-- Logical puzzles  
-- Pattern recognition  
-
----
-
-### 5. Learning Stats System
-Replace normal XP with **Learning Stats**.
-
-Each solved riddle:
-- `+2 Logic`
-- `+1 Memory`
-
-This makes learning measurable.
-
----
-
-### 6. Daily Learning Quests
-- “Riddle of the Day”  
-- “Concept of the Day”  
-
----
-
-### 7. Accessibility
-Features that make the project stand out academically:
-- Simple language mode  
-- Audio hints (text-to-speech later)  
-- Highlight keywords  
-- Difficulty slider  
-
----
-
-### 8. Personalization
-Collect player data:
-- Time to solve  
-- Hints used  
-- Wrong attempts  
-- Areas explored  
-
-Use it to adjust:
-- Riddle difficulty  
-- Number of hints  
-- Time limits  
-- Topics to be focused on  
-
----
-
-### 9. Computer Vision
-*(Planned feature)*
-
----
-
-### 10. Leaderboard
-Global and/or local leaderboard system
+## 📈 Planned Features
+- **Computer Vision:** Integration for identifying real-world concepts via webcam.
+- **Expanded Accessibility:** Text-to-speech for audio hints and simple language modes.
+- **Global Leaderboards:** Competitive learning with local and global high scores.
+- **Daily Quests:** "Riddle of the Day" and "Concept of the Day".
