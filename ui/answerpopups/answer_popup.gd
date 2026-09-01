@@ -298,7 +298,7 @@ func _on_run_code_pressed() -> void:
 			{"content": coding_editor.text}
 		]
 	}
-	var headers := ["Content-Type: application/json"]
+	var headers = PackedStringArray(["Content-Type: application/json"])
 	var err := coding_http_request.request(PISTON_EXECUTE_URL, headers, HTTPClient.METHOD_POST, JSON.stringify(payload))
 	if err != OK:
 		coding_output.text = "❌ Failed to start request: %s" % error_string(err)

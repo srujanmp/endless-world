@@ -262,7 +262,7 @@ func _on_run_pressed() -> void:
 		"user_code": user_code
 	}
 	
-	var headers := ["Content-Type: application/json"]
+	var headers = PackedStringArray(["Content-Type: application/json"])
 	var err = _http.request("http://localhost:8000/api/evaluate_code", headers, HTTPClient.METHOD_POST, JSON.stringify(payload))
 	if err != OK:
 		_output.text = "[color=red]❌ Request failed.[/color]"
