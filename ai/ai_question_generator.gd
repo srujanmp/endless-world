@@ -300,7 +300,7 @@ func _process(delta: float) -> void:
 
 # ================= LOG SYSTEM =================
 func add_log(message: String) -> void:
-	if not log_label:
+	if not log_label or Global.is_coding_mode:
 		return
 
 	log_history.append(message)

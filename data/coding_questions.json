@@ -1,0 +1,1112 @@
+[
+  {
+    "title": "CRAFTING TORCHES #1",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A torch needs 3 coal and 3 sticks. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_torch(coal, sticks):\n    pass",
+    "funcName": "craft_torch",
+    "testCases": [
+      {
+        "input": [
+          3,
+          3
+        ],
+        "expected": 6
+      },
+      {
+        "input": [
+          6,
+          6
+        ],
+        "expected": 12
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING TORCHES #2",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A torch needs 5 coal and 4 sticks. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_torch(coal, sticks):\n    pass",
+    "funcName": "craft_torch",
+    "testCases": [
+      {
+        "input": [
+          5,
+          4
+        ],
+        "expected": 9
+      },
+      {
+        "input": [
+          10,
+          8
+        ],
+        "expected": 18
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING SWORDS #1",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A sword needs 1 iron and 4 sticks. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_sword(iron, sticks):\n    pass",
+    "funcName": "craft_sword",
+    "testCases": [
+      {
+        "input": [
+          1,
+          4
+        ],
+        "expected": 5
+      },
+      {
+        "input": [
+          2,
+          8
+        ],
+        "expected": 10
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING SWORDS #2",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A sword needs 2 iron and 4 sticks. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_sword(iron, sticks):\n    pass",
+    "funcName": "craft_sword",
+    "testCases": [
+      {
+        "input": [
+          2,
+          4
+        ],
+        "expected": 6
+      },
+      {
+        "input": [
+          4,
+          8
+        ],
+        "expected": 12
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING PICKAXES #1",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A pickaxe needs 2 diamonds and 3 sticks. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_pickaxe(diamonds, sticks):\n    pass",
+    "funcName": "craft_pickaxe",
+    "testCases": [
+      {
+        "input": [
+          2,
+          3
+        ],
+        "expected": 5
+      },
+      {
+        "input": [
+          4,
+          6
+        ],
+        "expected": 10
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING PICKAXES #2",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A pickaxe needs 1 diamonds and 1 sticks. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_pickaxe(diamonds, sticks):\n    pass",
+    "funcName": "craft_pickaxe",
+    "testCases": [
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      },
+      {
+        "input": [
+          2,
+          2
+        ],
+        "expected": 4
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING BOWS #1",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A bow needs 5 sticks and 4 string. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_bow(sticks, string):\n    pass",
+    "funcName": "craft_bow",
+    "testCases": [
+      {
+        "input": [
+          5,
+          4
+        ],
+        "expected": 9
+      },
+      {
+        "input": [
+          10,
+          8
+        ],
+        "expected": 18
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING BOWS #2",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A bow needs 1 sticks and 3 string. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_bow(sticks, string):\n    pass",
+    "funcName": "craft_bow",
+    "testCases": [
+      {
+        "input": [
+          1,
+          3
+        ],
+        "expected": 4
+      },
+      {
+        "input": [
+          2,
+          6
+        ],
+        "expected": 8
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING BEDS #1",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A bed needs 4 planks and 3 wool. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_bed(planks, wool):\n    pass",
+    "funcName": "craft_bed",
+    "testCases": [
+      {
+        "input": [
+          4,
+          3
+        ],
+        "expected": 7
+      },
+      {
+        "input": [
+          8,
+          6
+        ],
+        "expected": 14
+      }
+    ]
+  },
+  {
+    "title": "CRAFTING BEDS #2",
+    "icon": "\u26cf\ufe0f",
+    "desc": "A bed needs 4 planks and 4 wool. Fix the function to return the sum of both items.",
+    "startingCode": "def craft_bed(planks, wool):\n    pass",
+    "funcName": "craft_bed",
+    "testCases": [
+      {
+        "input": [
+          4,
+          4
+        ],
+        "expected": 8
+      },
+      {
+        "input": [
+          8,
+          8
+        ],
+        "expected": 16
+      }
+    ]
+  },
+  {
+    "title": "DETECT CREEPERS #1",
+    "icon": "\ud83e\udde8",
+    "desc": "creeper are near! Return 'Danger' if distance is less than 4, otherwise return 'Safe'.",
+    "startingCode": "def detect_creeper(distance):\n    pass",
+    "funcName": "detect_creeper",
+    "testCases": [
+      {
+        "input": [
+          3
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          6
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT CREEPERS #2",
+    "icon": "\ud83e\udde8",
+    "desc": "creeper are near! Return 'Danger' if distance is less than 8, otherwise return 'Safe'.",
+    "startingCode": "def detect_creeper(distance):\n    pass",
+    "funcName": "detect_creeper",
+    "testCases": [
+      {
+        "input": [
+          7
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          10
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT ZOMBIES #1",
+    "icon": "\ud83e\udde8",
+    "desc": "zombie are near! Return 'Danger' if distance is less than 10, otherwise return 'Safe'.",
+    "startingCode": "def detect_zombie(distance):\n    pass",
+    "funcName": "detect_zombie",
+    "testCases": [
+      {
+        "input": [
+          9
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          12
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT ZOMBIES #2",
+    "icon": "\ud83e\udde8",
+    "desc": "zombie are near! Return 'Danger' if distance is less than 5, otherwise return 'Safe'.",
+    "startingCode": "def detect_zombie(distance):\n    pass",
+    "funcName": "detect_zombie",
+    "testCases": [
+      {
+        "input": [
+          4
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          7
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT SKELETONS #1",
+    "icon": "\ud83e\udde8",
+    "desc": "skeleton are near! Return 'Danger' if distance is less than 9, otherwise return 'Safe'.",
+    "startingCode": "def detect_skeleton(distance):\n    pass",
+    "funcName": "detect_skeleton",
+    "testCases": [
+      {
+        "input": [
+          8
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          11
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT SKELETONS #2",
+    "icon": "\ud83e\udde8",
+    "desc": "skeleton are near! Return 'Danger' if distance is less than 9, otherwise return 'Safe'.",
+    "startingCode": "def detect_skeleton(distance):\n    pass",
+    "funcName": "detect_skeleton",
+    "testCases": [
+      {
+        "input": [
+          8
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          11
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT SPIDERS #1",
+    "icon": "\ud83e\udde8",
+    "desc": "spider are near! Return 'Danger' if distance is less than 6, otherwise return 'Safe'.",
+    "startingCode": "def detect_spider(distance):\n    pass",
+    "funcName": "detect_spider",
+    "testCases": [
+      {
+        "input": [
+          5
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          8
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT SPIDERS #2",
+    "icon": "\ud83e\udde8",
+    "desc": "spider are near! Return 'Danger' if distance is less than 9, otherwise return 'Safe'.",
+    "startingCode": "def detect_spider(distance):\n    pass",
+    "funcName": "detect_spider",
+    "testCases": [
+      {
+        "input": [
+          8
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          11
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT ENDERMEN #1",
+    "icon": "\ud83e\udde8",
+    "desc": "enderman are near! Return 'Danger' if distance is less than 5, otherwise return 'Safe'.",
+    "startingCode": "def detect_enderman(distance):\n    pass",
+    "funcName": "detect_enderman",
+    "testCases": [
+      {
+        "input": [
+          4
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          7
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "DETECT ENDERMEN #2",
+    "icon": "\ud83e\udde8",
+    "desc": "enderman are near! Return 'Danger' if distance is less than 5, otherwise return 'Safe'.",
+    "startingCode": "def detect_enderman(distance):\n    pass",
+    "funcName": "detect_enderman",
+    "testCases": [
+      {
+        "input": [
+          4
+        ],
+        "expected": "Danger"
+      },
+      {
+        "input": [
+          7
+        ],
+        "expected": "Safe"
+      }
+    ]
+  },
+  {
+    "title": "MINING DIAMOND #1",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every diamond ore you mine drops 5 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_diamond(ores):\n    pass",
+    "funcName": "mine_diamond",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 50
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING DIAMOND #2",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every diamond ore you mine drops 5 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_diamond(ores):\n    pass",
+    "funcName": "mine_diamond",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 50
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING GOLD #1",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every gold ore you mine drops 5 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_gold(ores):\n    pass",
+    "funcName": "mine_gold",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 50
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING GOLD #2",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every gold ore you mine drops 2 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_gold(ores):\n    pass",
+    "funcName": "mine_gold",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 20
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING IRON #1",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every iron ore you mine drops 2 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_iron(ores):\n    pass",
+    "funcName": "mine_iron",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 20
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING IRON #2",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every iron ore you mine drops 3 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_iron(ores):\n    pass",
+    "funcName": "mine_iron",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 30
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING COAL #1",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every coal ore you mine drops 5 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_coal(ores):\n    pass",
+    "funcName": "mine_coal",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 50
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING COAL #2",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every coal ore you mine drops 2 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_coal(ores):\n    pass",
+    "funcName": "mine_coal",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 20
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING EMERALD #1",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every emerald ore you mine drops 3 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_emerald(ores):\n    pass",
+    "funcName": "mine_emerald",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 30
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "MINING EMERALD #2",
+    "icon": "\ud83d\udc8e",
+    "desc": "Every emerald ore you mine drops 4 gems. Return the total gems for the given number of ores.",
+    "startingCode": "def mine_emerald(ores):\n    pass",
+    "funcName": "mine_emerald",
+    "testCases": [
+      {
+        "input": [
+          10
+        ],
+        "expected": 40
+      },
+      {
+        "input": [
+          0
+        ],
+        "expected": 0
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #31",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 99 units of water and 83 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_31(water, magic):\n    pass",
+    "funcName": "brew_potion_31",
+    "testCases": [
+      {
+        "input": [
+          99,
+          83
+        ],
+        "expected": 182
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #32",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 72 units of water and 49 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_32(water, magic):\n    pass",
+    "funcName": "brew_potion_32",
+    "testCases": [
+      {
+        "input": [
+          72,
+          49
+        ],
+        "expected": 121
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #33",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 33 units of water and 47 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_33(water, magic):\n    pass",
+    "funcName": "brew_potion_33",
+    "testCases": [
+      {
+        "input": [
+          33,
+          47
+        ],
+        "expected": 80
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #34",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 97 units of water and 65 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_34(water, magic):\n    pass",
+    "funcName": "brew_potion_34",
+    "testCases": [
+      {
+        "input": [
+          97,
+          65
+        ],
+        "expected": 162
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #35",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 14 units of water and 40 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_35(water, magic):\n    pass",
+    "funcName": "brew_potion_35",
+    "testCases": [
+      {
+        "input": [
+          14,
+          40
+        ],
+        "expected": 54
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #36",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 29 units of water and 12 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_36(water, magic):\n    pass",
+    "funcName": "brew_potion_36",
+    "testCases": [
+      {
+        "input": [
+          29,
+          12
+        ],
+        "expected": 41
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #37",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 25 units of water and 58 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_37(water, magic):\n    pass",
+    "funcName": "brew_potion_37",
+    "testCases": [
+      {
+        "input": [
+          25,
+          58
+        ],
+        "expected": 83
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #38",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 17 units of water and 41 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_38(water, magic):\n    pass",
+    "funcName": "brew_potion_38",
+    "testCases": [
+      {
+        "input": [
+          17,
+          41
+        ],
+        "expected": 58
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #39",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 18 units of water and 73 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_39(water, magic):\n    pass",
+    "funcName": "brew_potion_39",
+    "testCases": [
+      {
+        "input": [
+          18,
+          73
+        ],
+        "expected": 91
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #40",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 84 units of water and 87 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_40(water, magic):\n    pass",
+    "funcName": "brew_potion_40",
+    "testCases": [
+      {
+        "input": [
+          84,
+          87
+        ],
+        "expected": 171
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #41",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 40 units of water and 100 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_41(water, magic):\n    pass",
+    "funcName": "brew_potion_41",
+    "testCases": [
+      {
+        "input": [
+          40,
+          100
+        ],
+        "expected": 140
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #42",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 10 units of water and 87 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_42(water, magic):\n    pass",
+    "funcName": "brew_potion_42",
+    "testCases": [
+      {
+        "input": [
+          10,
+          87
+        ],
+        "expected": 97
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #43",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 32 units of water and 32 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_43(water, magic):\n    pass",
+    "funcName": "brew_potion_43",
+    "testCases": [
+      {
+        "input": [
+          32,
+          32
+        ],
+        "expected": 64
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #44",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 52 units of water and 30 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_44(water, magic):\n    pass",
+    "funcName": "brew_potion_44",
+    "testCases": [
+      {
+        "input": [
+          52,
+          30
+        ],
+        "expected": 82
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #45",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 55 units of water and 80 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_45(water, magic):\n    pass",
+    "funcName": "brew_potion_45",
+    "testCases": [
+      {
+        "input": [
+          55,
+          80
+        ],
+        "expected": 135
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #46",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 59 units of water and 72 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_46(water, magic):\n    pass",
+    "funcName": "brew_potion_46",
+    "testCases": [
+      {
+        "input": [
+          59,
+          72
+        ],
+        "expected": 131
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #47",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 17 units of water and 13 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_47(water, magic):\n    pass",
+    "funcName": "brew_potion_47",
+    "testCases": [
+      {
+        "input": [
+          17,
+          13
+        ],
+        "expected": 30
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #48",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 75 units of water and 87 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_48(water, magic):\n    pass",
+    "funcName": "brew_potion_48",
+    "testCases": [
+      {
+        "input": [
+          75,
+          87
+        ],
+        "expected": 162
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #49",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 47 units of water and 80 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_49(water, magic):\n    pass",
+    "funcName": "brew_potion_49",
+    "testCases": [
+      {
+        "input": [
+          47,
+          80
+        ],
+        "expected": 127
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  },
+  {
+    "title": "POTION BREWING #50",
+    "icon": "\ud83e\uddea",
+    "desc": "Brewing this potion requires mixing 77 units of water and 64 units of magic. Write a function that returns their sum.",
+    "startingCode": "def brew_potion_50(water, magic):\n    pass",
+    "funcName": "brew_potion_50",
+    "testCases": [
+      {
+        "input": [
+          77,
+          64
+        ],
+        "expected": 141
+      },
+      {
+        "input": [
+          1,
+          1
+        ],
+        "expected": 2
+      }
+    ]
+  }
+]

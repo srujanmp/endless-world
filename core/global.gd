@@ -18,6 +18,7 @@ var rl: DifficultyRL
 var difficulty: String = "MEDIUM"
 var current_question_type: QuestionType = QuestionType.MCQ
 var is_coding_mode: bool = false
+var current_coding_question: Dictionary = {}
 
 
 func _ready():

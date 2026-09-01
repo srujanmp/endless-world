@@ -137,6 +137,10 @@ func _ready():
 			if agentic_bot != null and hint_idx < riddle_ui.hints.size():
 				agentic_bot.speak(riddle_ui.hints[hint_idx])
 		)
+	else:
+		riddle_ui.visible = false
+		if gemini:
+			gemini.set_process(false)
 
 	# 🤖 AGENTIC BOT
 	agentic_bot = AgenticBot.new()
@@ -147,7 +151,11 @@ func _ready():
 
 func _on_well_interacted():
 	if Global.is_coding_mode:
-		answer_popup.open("coding", [], hearts, self, "")
+		var CodingPopupScript = load("res://ui/coding_screen/coding_popup.gd")
+		var popup = CanvasLayer.new()
+		popup.set_script(CodingPopupScript)
+		add_child(popup)
+		popup.open(hearts)
 		return
 		
 	if current_options.is_empty():
@@ -399,6 +407,7 @@ func _on_player_died():
 
 func create_death_overlay():
 	death_overlay = CanvasLayer.new()
+	death_overlay.layer = 100
 	add_child(death_overlay)
 	var backbuffer := BackBufferCopy.new()
 	backbuffer.copy_mode = BackBufferCopy.COPY_MODE_VIEWPORT
