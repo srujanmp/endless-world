@@ -24,7 +24,7 @@ const POPUP_W          := 820.0
 const POPUP_H          := 560.0
 const SPINE_W          := 42.0
 
-const TAB_NAMES := ["Solved Riddles", "Concepts", "Fun Facts"]
+const TAB_NAMES := ["Solved Riddles", "Concepts"]
 
 var _overlay: ColorRect
 var _book_root: Control
@@ -238,7 +238,6 @@ func _load_tab_content(idx: int) -> void:
 	match idx:
 		0: _populate_riddles()
 		1: _populate_concepts()
-		2: _populate_facts()
 
 	await get_tree().process_frame
 	_content_wrapper.custom_minimum_size.y = _content_vbox.size.y
@@ -272,17 +271,6 @@ func _populate_concepts() -> void:
 		var def_str: String  = entry.get("definition", name_str)
 		var topic: String    = entry.get("topic", "").capitalize()
 		_add_entry("lightbulb", name_str + ("   [" + topic + "]" if not topic.is_empty() else ""), def_str)
-
-func _populate_facts() -> void:
-	var facts: Array = Global.learning_journal.get("fun_facts", []).duplicate()
-	facts.reverse()
-	if facts.is_empty():
-		_add_empty_message("No fun facts collected yet.\nThe AI companion shares a fact every 2 minutes\nduring gameplay. Keep playing!")
-		return
-	for entry in facts:
-		var text: String  = entry.get("text", "")
-		var topic: String = entry.get("topic", "").capitalize()
-		_add_entry("sparkle", "Fun Fact" + ("   [" + topic + "]" if not topic.is_empty() else ""), text)
 
 func _add_entry(icon: String, heading: String, body: String) -> void:
 	var card := PanelContainer.new()
