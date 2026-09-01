@@ -163,37 +163,4 @@ theme_override_fonts/font = ExtResource("2_ksj1l")
 theme_override_font_sizes/font_size = 30
 text = "📊 Stats"
 
-[node name="StatsPopup" type="Panel" parent="JoyStickUI"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="JoyStickUI/StatsPopup"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-alignment = 1
-
-[node name="StatsText" type="Label" parent="JoyStickUI/StatsPopup/VBoxContainer"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_ksj1l")
-theme_override_font_sizes/font_size = 35
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ResetButton" type="Button" parent="JoyStickUI/StatsPopup/VBoxContainer"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_ksj1l")
-theme_override_font_sizes/font_size = 35
-text = "Reset Stats"
-
-[node name="CloseButton" type="Button" parent="JoyStickUI/StatsPopup/VBoxContainer"]
-layout_mode = 2
-theme_override_fonts/font = ExtResource("2_ksj1l")
-theme_override_font_sizes/font_size = 35
-text = "Close ✖ "
