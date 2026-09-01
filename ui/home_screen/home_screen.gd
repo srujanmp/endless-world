@@ -8,10 +8,8 @@ extends Control
 @onready var joystick_ui := $JoyStickUI/VirtualJoystick
 
 @onready var stats_button := $JoyStickUI/StatsButton
-@onready var stats_popup := $JoyStickUI/StatsPopup
-@onready var stats_text := $JoyStickUI/StatsPopup/VBoxContainer/StatsText
-@onready var reset_button := $JoyStickUI/StatsPopup/VBoxContainer/ResetButton
-@onready var close_button := $JoyStickUI/StatsPopup/VBoxContainer/CloseButton
+
+var _stats_overlay: Panel
 
 var selected_topic: String = ""
 var _journal_button: Button
@@ -22,11 +20,16 @@ func _ready():
 	high_score_label.text = "🏆 High Score: %d" % Global.high_score
 	level_label.text = "🧭 Level: %d" % Global.level
 
-	stats_popup.visible = false
+	# Build the modern stats overlay (hidden by default)
+	var StatsPopupScript = load("res://ui/stats_profile/stats_popup.gd")
+	_stats_overlay = Panel.new()
+	_stats_overlay.set_script(StatsPopupScript)
+	_stats_overlay.visible = false
+	$JoyStickUI.add_child(_stats_overlay)
 
 	stats_button.pressed.connect(_open_stats)
-	reset_button.pressed.connect(_reset_stats)
-	close_button.pressed.connect(_close_stats)
+	_stats_overlay.closed.connect(_close_stats)
+	_stats_overlay.stats_reset.connect(_reset_stats)
 
 	start_button.pressed.connect(_on_start_pressed)
 	joystick_ui.modulate.a = 0.3
@@ -110,17 +113,17 @@ func _open_journal() -> void:
 
 
 func _open_stats():
-	stats_text.text = Global.stats_to_string()
-	stats_popup.visible = true
+	_stats_overlay.refresh()
+	_stats_overlay.visible = true
 
 
 func _close_stats():
-	stats_popup.visible = false
+	_stats_overlay.visible = false
 
 
 func _reset_stats():
 	Global.reset_all_stats()
-	stats_text.text = Global.stats_to_string()
+	_stats_overlay.refresh()
 	get_tree().reload_current_scene()
 
 
@@ -137,4 +140,11 @@ func _on_start_pressed():
 func _on_coding_pressed() -> void:
 	Global.is_coding_mode = true
 	Global.selected_topic = "coding"
+	
+	var file = FileAccess.open("res://data/coding_questions.json", FileAccess.READ)
+	if file:
+		var arr = JSON.parse_string(file.get_as_text())
+		if typeof(arr) == TYPE_ARRAY and not arr.is_empty():
+			Global.current_coding_question = arr[randi() % arr.size()]
+	
 	get_tree().change_scene_to_file("res://map_components/map.tscn")

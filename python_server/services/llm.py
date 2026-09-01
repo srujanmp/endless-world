@@ -148,3 +148,37 @@ def generate_riddle_json(topic: str, difficulty: str, retrieved_docs: List[str])
         logger.error("Failed to parse LLM response as JSON: %s", str(e))
         logger.error("  Raw response: %s", content[:200])
         raise Exception(f"LLM returned invalid JSON: {str(e)}")
+
+def evaluate_code(question_title: str, question_desc: str, expected_output: str, user_code: str) -> dict:
+    if not groq_client:
+        logger.error("Cannot evaluate code — Groq client is not configured")
+        raise Exception("GROQ_API_KEY not configured")
+
+    prompt = f"""You are a code evaluator for a game. 
+Question Title: {question_title}
+Question Description: {question_desc}
+Expected Output/Behavior: {expected_output}
+
+User Code:
+{user_code}
+
+Evaluate the user's code. Does it correctly solve the problem described?
+Return a JSON object with exactly two keys:
+- "passed": boolean (true if the code logically solves the problem, false otherwise)
+- "feedback": string (a short, encouraging 1-2 sentence message explaining what is right or wrong, simulating compiler output).
+
+Output ONLY valid JSON.
+"""
+    logger.info("Sending code evaluation request to LLM...")
+    response = groq_client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="openai/gpt-oss-120b",
+        temperature=0.0,
+        response_format={"type": "json_object"}
+    )
+    result = response.choices[0].message.content
+    try:
+        return json.loads(result)
+    except Exception as e:
+        logger.error("Failed to parse LLM evaluation JSON: %s", str(e))
+        return {"passed": False, "feedback": "Evaluation error: " + str(e)}

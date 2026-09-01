@@ -15,10 +15,10 @@ logger = logging.getLogger("EndlessWorlds")
 load_dotenv(dotenv_path="../.env")
 logger.info("Environment variables loaded from .env")
 
-from models.schemas import ScrapeRequest, RAGRequest, RiddleRequest
+from models.schemas import ScrapeRequest, RAGRequest, RiddleRequest, EvaluateRequest
 from services.scraper import search_and_scrape
 from services.vectordb import chunk_text, store_in_vectordb, retrieve_docs, reset_index
-from services.llm import generate_rag_reply, generate_riddle_json
+from services.llm import generate_rag_reply, generate_riddle_json, evaluate_code
 
 app = FastAPI(title="Endless Worlds RAG API")
 logger.info("FastAPI application initialised — Endless Worlds RAG API")
@@ -131,7 +131,22 @@ async def generate_riddle(req: RiddleRequest):
         raise HTTPException(status_code=500, detail=f"Failed to generate riddle: {str(e)}")
 
 
+@app.post("/api/evaluate_code")
+async def evaluate_code_endpoint(req: EvaluateRequest):
+    logger.info("POST /api/evaluate_code — Title: \"%s\"", req.question_title)
+    start = time.time()
+    try:
+        result = evaluate_code(req.question_title, req.question_desc, req.expected_output, req.user_code)
+        elapsed = time.time() - start
+        logger.info("Code evaluation completed in %.2f seconds", elapsed)
+        return result
+    except Exception as e:
+        elapsed = time.time() - start
+        logger.error("Code evaluation FAILED after %.2f seconds — %s", elapsed, str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to evaluate code: {str(e)}")
 if __name__ == "__main__":
     import uvicorn
     logger.info("Starting Uvicorn server on http://0.0.0.0:8000")
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+

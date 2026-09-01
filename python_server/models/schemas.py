@@ -11,3 +11,9 @@ class RAGRequest(BaseModel):
 class RiddleRequest(BaseModel):
     topic: str
     difficulty: str
+
+class EvaluateRequest(BaseModel):
+    question_title: str
+    question_desc: str
+    expected_output: str
+    user_code: str
