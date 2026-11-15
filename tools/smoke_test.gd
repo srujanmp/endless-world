@@ -306,6 +306,12 @@ class Runner extends Node:
 			g._fire(id, Vector2.RIGHT)
 			await frames(6)
 			g._fire_t = 0.0
+		for id in SurvivalArsenal.AIRDROP:
+			g._give_gun(id, 2)
+			g._fire(id, Vector2.RIGHT)
+			g._fire(id, Vector2.RIGHT)
+			await frames(6)
+		check(g.ammo.is_empty(), "airdrop guns run out of ammo")
 		step("survival: every mob type + boss patterns")
 		for tname in SurvivalMob.ORDER:
 			g.portal(tname, g.near_player(60.0, 90.0), [] as Array[String])
@@ -328,6 +334,46 @@ class Runner extends Node:
 		g._dash()
 		g._cycle_weapon(1)
 		await secs(1.0)
+		step("survival: build every machine, use every item, airdrop, allies")
+		SurvivalArsenal.add_coins(3000)
+		for mid in SurvivalMachine.ORDER:
+			var placed := false
+			for k in 200:
+				var c: Vector2i = g.walk_cells.pick_random()
+				if Vector2(c * 16).distance_to(g.player.position) < 200.0 and g.can_place(mid, c):
+					placed = g.place_machine(mid, c)
+					break
+			check(placed, "built a " + mid)
+		g._toggle_build(true)
+		g._pick_build("turret")
+		await frames(4)
+		g._toggle_build(false)
+		g.items.clear()   # the bot's loadout may have handed some out already
+		for id in SurvivalItems.ORDER:
+			g.add_item(id)
+		g.hearts.damage(3)
+		for id in SurvivalItems.ORDER:
+			g.use_item(id)
+			await frames(2)
+		check(g.items.is_empty(), "every item can be used, left: %s" % g.items)
+		g._spawn_crate(g.player.position + Vector2(0, 4))
+		await secs(3.5)
+		check(g.crates.is_empty(), "airdrop crate lands and opens")
+		g.call_troopers(2)
+		for m in ["goblin", "brute", "sapper", "boar", "shaman"]:
+			g.portal(m, g.near_player(60.0, 90.0), [] as Array[String])
+		await secs(3.0)
+		check(g.allies.size() >= 2, "trader and troopers are out")
+		g._show_trader()
+		await frames(6)
+		await close_modals()
+		g._bot = false   # the bot skips the loadout page; show it once
+		g._show_loadout(func(): pass)
+		await frames(6)
+		await close_modals()
+		g._bot = true
+		g.damage_machines(g.player.position, 2000.0, 999.0)
+		check(g.machines.size() == 1, "machines can be destroyed (spike traps can't)")
 		step("survival: night")
 		g._day_t = 0.0
 		await secs(0.5)

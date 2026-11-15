@@ -14,7 +14,7 @@ var pierce := 0
 var homing := 0.0          # turn rate toward the player (rad/s), hostile only
 var slows := false         # web: slows the player instead of extra damage
 var hit_ids: Array = []    # mobs already hit (for piercing shots)
-var kind := "bolt"         # player shots: bolt | pellet | fire | spear | moon
+var kind := "bolt"         # player shots: bolt | pellet | fire | spear | moon | bullet | rocket | rail | laser | grenade
 var boom := 0.0            # fireballs: explosion radius
 var returning := false     # boomerang on its way back
 var t := 0.0
@@ -48,6 +48,24 @@ func _draw() -> void:
 			draw_colored_polygon(PackedVector2Array([tip, tip * 0.4 + d.orthogonal() * r * 0.9,
 				tip * 0.4 - d.orthogonal() * r * 0.9]), color)
 			draw_line(-d * r * 6.0, -d * r * 3.0, Color(color, 0.35), 1.0)
+		"bullet":
+			draw_line(Vector2.ZERO, -d * r * 2.4, Color(color, 0.55), r * 0.7)
+			draw_circle(Vector2.ZERO, r * 0.55, Color(1.0, 1.0, 0.85))
+		"rocket":
+			var flick := 1.0 + sin(t * 40.0) * 0.2
+			draw_circle(-d * r * 2.6, r * 0.9 * flick, Color(1.0, 0.6, 0.1, 0.8))
+			draw_line(-d * r * 2.0, d * r * 1.2, Color(0.75, 0.78, 0.85), r * 1.2)
+			draw_circle(d * r * 1.3, r * 0.6, Color(0.95, 0.3, 0.25))
+		"rail":
+			draw_line(-d * r * 12.0, d * r * 2.0, Color(color, 0.35), r * 1.8)
+			draw_line(-d * r * 9.0, d * r * 2.0, Color(1, 1, 1, 0.95), r * 0.6)
+		"laser":
+			draw_line(-d * r * 4.0, d * r * 2.0, color, r * 0.9)
+			draw_line(-d * r * 3.5, d * r * 1.5, Color(1.0, 0.92, 0.96), r * 0.35)
+		"grenade":
+			draw_circle(Vector2.ZERO, r, Color(0.33, 0.48, 0.24))
+			draw_circle(Vector2(-r * 0.3, -r * 0.3), r * 0.4, Color(0.6, 0.8, 0.5))
+			draw_line(Vector2(0, -r), Vector2(r * 0.7, -r * 1.6).rotated(t * 10.0), Color(0.85, 0.85, 0.9), 1.0)
 		"moon":
 			var a := t * 18.0
 			draw_arc(Vector2.ZERO, r * 1.8, a, a + PI * 1.2, 10, color, r * 0.9)

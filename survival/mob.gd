@@ -1,27 +1,40 @@
 extends Node2D
 class_name SurvivalMob
 
-# A monster in Survival mode: one of 10 types (each with its own AI), optional random
+# A monster in Survival mode: one of 21 types (each with its own AI), optional random
 # mutations, or a boss that cycles through attack patterns. Positions are arena-local
-# (the arena node is drawn at 2x), the origin is at the feet.
+# (the arena node is drawn at 2x), the origin is at the feet. Health scales with the
+# round, your firepower and the dynamic threat level (SurvivalGame.hp_mult).
 
 const TYPES := {
+	# "art": sprite file when it isn't the type name (redrawn HD art; the 16px originals stay
+	# for the coding-quest pictures)
 	"zombie":   {"hp": 4.0, "speed": 36.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "chase", "pts": 10},
-	"bat":      {"hp": 2.0, "speed": 82.0, "dmg": 1, "r": 6.0, "scale": 1.4, "ai": "erratic", "pts": 12},
+	"bat":      {"hp": 2.0, "speed": 82.0, "dmg": 1, "r": 6.0, "scale": 1.4, "ai": "erratic", "pts": 12, "art": "bat_hd"},
 	"slime":    {"hp": 5.0, "speed": 30.0, "dmg": 1, "r": 8.0, "scale": 1.6, "ai": "hop", "pts": 12},
 	"skeleton": {"hp": 3.0, "speed": 34.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "archer", "pts": 15},
-	"spider":   {"hp": 3.0, "speed": 44.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "lunge", "pts": 14},
-	"wolf":     {"hp": 3.0, "speed": 70.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "wolf", "pts": 12},
-	"ghost":    {"hp": 3.0, "speed": 48.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "phase", "pts": 16},
-	"bomber":   {"hp": 3.0, "speed": 52.0, "dmg": 2, "r": 7.0, "scale": 1.6, "ai": "bomber", "pts": 15},
-	"mage":     {"hp": 4.0, "speed": 30.0, "dmg": 1, "r": 7.0, "scale": 1.7, "ai": "mage", "pts": 20},
-	"golem":    {"hp": 12.0, "speed": 22.0, "dmg": 2, "r": 11.0, "scale": 2.2, "ai": "chase", "pts": 30},
+	"spider":   {"hp": 3.0, "speed": 44.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "lunge", "pts": 14, "art": "spider_hd"},
+	"wolf":     {"hp": 3.0, "speed": 70.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "wolf", "pts": 12, "art": "wolf_hd"},
+	"ghost":    {"hp": 3.0, "speed": 48.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "phase", "pts": 16, "art": "ghost_hd"},
+	"bomber":   {"hp": 3.0, "speed": 52.0, "dmg": 2, "r": 7.0, "scale": 1.6, "ai": "bomber", "pts": 15, "art": "bomber_hd"},
+	"mage":     {"hp": 4.0, "speed": 30.0, "dmg": 1, "r": 7.0, "scale": 1.7, "ai": "mage", "pts": 20, "art": "mage_hd"},
+	"golem":    {"hp": 12.0, "speed": 22.0, "dmg": 2, "r": 11.0, "scale": 2.2, "ai": "chase", "pts": 30, "art": "golem_hd"},
 	"eye":      {"hp": 3.0, "speed": 58.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "eye", "pts": 14, "fly": true},
 	"hornet":   {"hp": 2.5, "speed": 56.0, "dmg": 1, "r": 6.0, "scale": 1.5, "ai": "hornet", "pts": 16, "fly": true},
+	"raider":   {"hp": 5.0, "speed": 44.0, "dmg": 1, "r": 7.0, "scale": 1.6, "ai": "lunge", "pts": 14},
+	"goblin":   {"hp": 3.0, "speed": 64.0, "dmg": 1, "r": 6.0, "scale": 1.5, "ai": "thief", "pts": 16, "steal": 8},
+	"coin_golem": {"hp": 22.0, "speed": 26.0, "dmg": 2, "r": 10.0, "scale": 2.2, "ai": "thief", "pts": 40, "steal": 25},
+	"brute":    {"hp": 18.0, "speed": 24.0, "dmg": 2, "r": 10.0, "scale": 2.3, "ai": "siege", "pts": 35},
+	"sapper":   {"hp": 3.0, "speed": 58.0, "dmg": 2, "r": 7.0, "scale": 1.6, "ai": "sapper", "pts": 18},
+	"shaman":   {"hp": 5.0, "speed": 40.0, "dmg": 1, "r": 7.0, "scale": 1.7, "ai": "healer", "pts": 24},
+	"boar":     {"hp": 7.0, "speed": 60.0, "dmg": 2, "r": 8.0, "scale": 1.9, "ai": "charger", "pts": 24, "jump": true},
+	"knight":   {"hp": 8.0, "speed": 30.0, "dmg": 1, "r": 7.0, "scale": 1.7, "ai": "chase", "pts": 22, "armor": 0.55},
+	"drake":    {"hp": 6.0, "speed": 50.0, "dmg": 1, "r": 8.0, "scale": 1.8, "ai": "drake", "pts": 26},
 }
-# Unlock order: round N spawns the first N + 2 types.
-const ORDER := ["zombie", "slime", "bat", "eye", "skeleton", "spider", "hornet", "wolf", "ghost", "bomber", "mage", "golem"]
-const FLYERS := ["bat", "ghost", "eye", "hornet"]   # cross water
+# Unlock order: round N spawns the first 2N + 2 types.
+const ORDER := ["zombie", "slime", "raider", "bat", "goblin", "eye", "skeleton", "sapper", "spider", "knight", "hornet",
+	"boar", "wolf", "shaman", "ghost", "bomber", "coin_golem", "mage", "drake", "brute", "golem"]
+const FLYERS := ["bat", "ghost", "eye", "hornet", "shaman", "drake"]   # cross water and barricades
 # Slimes come in many colours (the sprite is pale and tinted per slime).
 const SLIME_COLORS := [Color(0.45, 1.0, 0.5), Color(0.45, 0.7, 1.0), Color(1.0, 0.55, 0.8), Color(0.75, 0.5, 1.0),
 	Color(1.0, 0.9, 0.35), Color(1.0, 0.45, 0.4), Color(0.4, 1.0, 0.95), Color(0.55, 0.55, 0.65)]
@@ -78,13 +91,19 @@ var net_target := Vector2.ZERO
 var _last_x := 0.0
 var _stuck_t := 0.0             # walker blocked by water for this long...
 var _wade_t := 0.0              # ...so it wades across for a while (no pathfinding needed)
+var slow_t := 0.0               # Frost Spire: half speed
+var freeze_t := 0.0             # Frost Bomb: frozen solid
+var loot := 0                   # thieves: coins they carry (dropped when killed)
+var blocked_by: Node = null     # machine in the way this frame (SurvivalMachine)
+var _bite := 0.0                # cooldown for hitting machines
 
 
 func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def: Dictionary = {}) -> void:
 	game = g
 	type_name = tname
 	kind = TYPES[tname]
-	hp = kind.hp * (1.0 + 0.12 * (round_no - 1))
+	hp = kind.hp * g.hp_mult()
+	armor = float(kind.get("armor", 1.0))
 	speed = kind.speed
 	radius = kind.r
 	dmg = kind.dmg
@@ -113,7 +132,7 @@ func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def:
 	sh.position = Vector2(0, 1)
 	add_child(sh)
 	spr = Sprite2D.new()
-	spr.texture = load("res://assets/survival/%s.png" % str(boss_def.get("sprite", tname)))
+	spr.texture = load("res://assets/survival/%s.png" % str(boss_def.get("sprite", kind.get("art", tname))))
 	spr.hframes = 2
 	var fh := float(spr.texture.get_height())
 	_px = 16.0 / fh
@@ -187,9 +206,11 @@ func hit(amount: float, dir: Vector2, crit := false, from_net := false) -> void:
 		return
 	var real := amount * armor
 	hp -= real
+	if type_name == "coin_golem" and randf() < 0.25:   # a walking piggy bank
+		game.drop_coins(position, 1)
 	flash = 0.09
 	game.sfx.play("hit", 0.2)
-	if not is_boss and type_name != "golem":
+	if not is_boss and not type_name in ["golem", "brute", "coin_golem", "knight"]:
 		kb += dir * (130.0 if crit else 90.0)
 	if not from_net:   # a guest's hit already showed its number on their screen
 		var txt := str(snappedf(real, 0.1)).trim_suffix(".0")
@@ -207,11 +228,20 @@ func tick(delta: float, ppos: Vector2) -> void:
 	flash -= delta
 	if regen > 0.0:
 		hp = minf(max_hp, hp + regen * delta)
+	slow_t -= delta
+	freeze_t -= delta
+	_bite -= delta
+	blocked_by = null
+	queue_redraw()   # health bar
+	if freeze_t > 0.0:   # frozen: no moving, no attacks
+		kb = kb.move_toward(Vector2.ZERO, 400.0 * delta)
+		spr.self_modulate = Color(0.55, 0.85, 1.4, 0.9)
+		return
 	var to_p := ppos - position
 	var dist := to_p.length()
 	var dir := to_p / maxf(dist, 0.001)
 	move_dir = Vector2.ZERO
-	var spd := speed
+	var spd := speed * (0.5 if slow_t > 0.0 else 1.0)
 
 	if is_boss:
 		_boss_tick(delta, ppos, dir, dist)
@@ -275,6 +305,75 @@ func tick(delta: float, ppos: Vector2) -> void:
 					cd = 2.4
 					var sting: SurvivalShot = game.shoot(center(), dir * 165.0, 1, Color(1.0, 0.85, 0.2))
 					sting.r = 2.5
+			"thief":
+				if _thief(dir, dist, ppos):
+					return
+				if state == "flee":
+					spd *= 1.3
+			"siege":   # goes for your machines first
+				var mc = game.nearest_machine(position, "")
+				move_dir = (mc.position - position).normalized() if mc else dir
+				if mc and _reaches(mc):
+					move_dir = Vector2.ZERO
+					if _bite <= 0.0:
+						_bite = 1.2
+						mc.damage(4.0)
+						game.shake_small()
+			"sapper":   # runs a bomb into the nearest machine (or you)
+				var mc = game.nearest_machine(position, "")
+				if state == "fuse":
+					if state_t <= 0.0:
+						game.explode(position, 46.0, dmg, true, true, self)
+						game.damage_machines(position, 50.0, 12.0)
+						dead = true
+						game.mob_died(self, false)
+						return
+				elif (mc and _reaches(mc)) or (mc == null and dist < 26.0):
+					state = "fuse"; state_t = 0.6
+				else:
+					move_dir = (mc.position - position).normalized() if mc else dir
+			"healer":   # hides behind the most hurt monster and heals the pack
+				var best: SurvivalMob = null
+				var worst := 0.95
+				for m in game.mobs:
+					if m != self and is_instance_valid(m) and not m.dead and not m.is_boss and m.hp / m.max_hp < worst \
+							and m.position.distance_to(position) < 240.0:
+						worst = m.hp / m.max_hp
+						best = m
+				if dist < 110.0:
+					move_dir = -dir
+				elif best:
+					move_dir = (best.position - position).normalized() if best.position.distance_to(position) > 30.0 else dir.orthogonal()
+				else:
+					move_dir = dir.orthogonal() * (1.0 if int(t / 3.0) % 2 == 0 else -1.0)
+				if cd <= 0.0:
+					cd = 2.2
+					var healed := false
+					for m in game.mobs:
+						if m != self and is_instance_valid(m) and not m.dead and not m.is_boss and m.hp < m.max_hp \
+								and m.position.distance_to(position) < 75.0:
+							m.hp = minf(m.max_hp, m.hp + m.max_hp * 0.2)
+							healed = true
+					if healed:
+						game.pulse(center(), 75.0, Color(0.4, 1.0, 0.6))
+			"charger":   # rides at your defenses, leaping over barricades
+				var mc = game.nearest_machine(position, "defense")
+				var goal: Vector2 = mc.position if mc else ppos
+				var gd := position.distance_to(goal)
+				var gdir := (goal - position) / maxf(gd, 0.001)
+				_dash_ai(gdir, gd, 140.0, 240.0, 2.6)
+				if state == "": move_dir = gdir
+				elif state == "dash": move_dir = aim; spd = 240.0
+				if mc and _reaches(mc) and _bite <= 0.0:
+					_bite = 0.9
+					mc.damage(5.0)
+			"drake":   # circles at range, breathes fire
+				move_dir = dir if dist > 150.0 else (-dir if dist < 100.0 else dir.orthogonal() * (1.0 if int(t / 2.5) % 2 == 0 else -1.0))
+				if cd <= 0.0 and dist < 230.0:
+					cd = 2.8
+					game.fan(center(), dir, 3, 0.2, 130.0, 1, Color(1.0, 0.5, 0.15))
+					if randf() < 0.5:
+						game.fire(position + dir * 20.0)
 			"mage":
 				if state == "vanish":
 					if state_t <= 0.0:
@@ -303,9 +402,13 @@ func tick(delta: float, ppos: Vector2) -> void:
 		position = game.clamp_box(position + (move_dir * spd * 0.6 + kb) * delta)
 	else:
 		var before := position
-		position = game.move_in(position, next)
+		position = game.mob_step(self, position, next)
+		if blocked_by and is_instance_valid(blocked_by):   # a machine is in the way: smash it
+			if _bite <= 0.0:
+				_bite = 0.9
+				blocked_by.damage(float(dmg))
 		# barely moving although it wants to: a pond or bay is in the way
-		if move_dir != Vector2.ZERO and position.distance_to(before) < spd * delta * 0.3:
+		elif move_dir != Vector2.ZERO and position.distance_to(before) < spd * delta * 0.3:
 			_stuck_t += delta
 			if _stuck_t > 0.8:
 				_stuck_t = 0.0
@@ -319,7 +422,7 @@ func tick(delta: float, ppos: Vector2) -> void:
 	if absf(move_dir.x) > 0.05:
 		spr.flip_h = move_dir.x < 0.0
 	var a := 0.3 if (phased or state == "vanish") else 1.0
-	var c := Color(3, 3, 3) if flash > 0.0 else tint
+	var c := Color(3, 3, 3) if flash > 0.0 else (tint * Color(0.75, 0.9, 1.2) if slow_t > 0.0 else tint)
 	if state in ["fuse", "tele_dash", "tele_charge"] and int(t * 12.0) % 2 == 0:
 		c = Color(2.5, 0.6, 0.6)
 	if enraged:
@@ -346,6 +449,7 @@ func puppet_tick(delta: float) -> void:
 	if absf(dx) > 0.05:
 		spr.flip_h = dx < 0.0
 	spr.frame = int(t * 5.0) % 2
+	queue_redraw()
 	var c := Color(3, 3, 3) if flash > 0.0 else tint
 	if state == "tele_dash" and int(t * 12.0) % 2 == 0:
 		c = Color(2.5, 0.6, 0.6)
@@ -357,6 +461,54 @@ func puppet_tick(delta: float) -> void:
 	z_index = int(position.y * 2.0 / 4.0)
 	if tag:
 		tag.visible = position.distance_to(game.ppos()) < 140.0
+
+
+# Small health bar once hurt (tough monsters take a while to bring down).
+func _draw() -> void:
+	if is_boss or hp >= max_hp or hp <= 0.0:
+		return
+	var w := 8.0 + 3.0 * scale_k
+	var y := -16.0 * scale_k - 4.0
+	draw_rect(Rect2(-w * 0.5 - 0.5, y - 0.5, w + 1.0, 3.0), Color(0.05, 0.04, 0.08, 0.8))
+	var f := clampf(hp / max_hp, 0.0, 1.0)
+	draw_rect(Rect2(-w * 0.5, y, w * f, 2.0), Color(1.0, 0.3, 0.3).lerp(Color(0.5, 1.0, 0.4), f))
+
+
+func freeze(secs: float) -> void:
+	freeze_t = maxf(freeze_t, secs * (0.35 if is_boss else 1.0))
+
+
+func _reaches(mc: Node) -> bool:
+	return position.distance_to(mc.position) < radius + int(mc.def.size) * 8.0 + 5.0
+
+
+# Goblins and coin golems: grab coins from a Coin Minter (or from you), then run for it.
+# Returns true when it got away (and is gone).
+func _thief(dir: Vector2, dist: float, ppos: Vector2) -> bool:
+	if state == "flee":
+		move_dir = -dir
+		if state_t <= 0.0:
+			game.mob_escaped(self)
+			return true
+		return false
+	var mc = game.nearest_machine(position, "minter")
+	if mc:
+		move_dir = (mc.position - position).normalized()
+		if _reaches(mc):
+			loot += mc.stored
+			game.floater(mc.position + Vector2(0, -20), "-%d 🪙 stolen!" % mc.stored, Color(1.0, 0.5, 0.3))
+			mc.stored = 0
+			state = "flee"; state_t = 7.0
+	else:
+		move_dir = dir
+		# co-op: only the host's own wallet is here to steal from
+		if dist < radius + 10.0 and game.ppos().distance_to(ppos) < 2.0 and _bite <= 0.0:
+			_bite = 1.0
+			var got: int = game.steal_coins(int(kind.steal) + game.round_no)
+			if got > 0:
+				loot += got
+				state = "flee"; state_t = 7.0
+	return false
 
 
 # telegraph, then dash at the player (spiders, wolves)

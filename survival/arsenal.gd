@@ -26,8 +26,18 @@ const WEAPONS := {
 	"storm": {"name": "Storm Rod", "icon": "⚡", "cost": 150, "up_cost": 55,
 		"cd": 0.60, "dmg": 1.3, "range": 170.0, "chains": 2, "color": Color(0.7, 0.85, 1.0),
 		"desc": "Lightning that jumps from enemy to enemy. Never misses."},
+	# airdrop guns: not sold in the Armory, found in crates / loadouts, limited ammo
+	"minigun": {"name": "Minigun", "icon": "⁂", "airdrop": true, "cd": 0.07, "dmg": 0.55, "speed": 380.0,
+		"color": Color(1.0, 0.9, 0.5), "desc": "A hail of bullets."},
+	"rocket": {"name": "Rocket Launcher", "icon": "➹", "airdrop": true, "cd": 0.9, "dmg": 5.0, "speed": 230.0,
+		"radius": 46.0, "color": Color(1.0, 0.55, 0.25), "desc": "Rockets that blow up crowds."},
+	"railgun": {"name": "Railgun", "icon": "⌁", "airdrop": true, "cd": 1.0, "dmg": 9.0, "speed": 900.0,
+		"color": Color(0.55, 1.0, 0.9), "desc": "One huge shot through everything."},
+	"laser": {"name": "Laser Rifle", "icon": "✺", "airdrop": true, "cd": 0.12, "dmg": 0.9, "speed": 620.0, "pierce": 2,
+		"color": Color(1.0, 0.35, 0.6), "desc": "Fast beams that pierce."},
 }
 const ORDER := ["bolt", "scatter", "flame", "spear", "moon", "storm"]
+const AIRDROP := {"minigun": 220, "rocket": 14, "railgun": 14, "laser": 160}   # gun -> ammo in a crate
 
 
 # Weapon numbers at a level (1..5).

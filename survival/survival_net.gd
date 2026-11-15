@@ -161,7 +161,7 @@ func _spawn_msg(m: Node) -> Dictionary:
 		"tn": m.tint.to_html(), "sc": snappedf(m.scale_k, 0.01), "mu": m.mutations}
 	if m.is_boss:
 		d["bn"] = str(m.boss.name)
-		d["bs"] = str(m.boss.get("sprite", m.type_name))
+		d["bs"] = str(m.boss.get("sprite", m.kind.get("art", m.type_name)))
 	return d
 
 
