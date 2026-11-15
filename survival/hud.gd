@@ -10,7 +10,7 @@ class_name SurvivalHud
 const FONT := preload("res://assets/fonts/Jersey10-Regular.ttf")
 const PAD := 12.0
 const W := 292.0                # panel width
-const H := 182.0                # panel height (the radar sits right below)
+const H := 186.0                # panel height (the radar sits right below)
 
 var game: Node                  # SurvivalGame
 var _bg := StyleBoxFlat.new()
@@ -120,15 +120,15 @@ func _draw() -> void:
 
 	# coins, kills, threat
 	y += 20.0
-	draw_texture_rect(icon("ico_coin"), Rect2(x, y + 2.0, 20, 20), false)
+	draw_texture_rect(icon("ico_coin"), Rect2(x, y + 7.0, 20, 20), false)
 	w = _text(Vector2(x + 24.0, y), str(SurvivalArsenal.coins()), 24, PixelUI.GOLD)
 	var kx := maxf(x + 24.0 + w + 12.0, x + 92.0)
-	draw_texture_rect(icon("ico_skull"), Rect2(kx, y + 2.0, 20, 20), false)
+	draw_texture_rect(icon("ico_skull"), Rect2(kx, y + 7.0, 20, 20), false)
 	var kills: int = game.kills
 	_text(Vector2(kx + 24.0, y), str(kills), 24, PixelUI.CREAM)
 
 	# weapon slots
-	y += 28.0
+	y += 31.0
 	var weapons: Array = game.weapons
 	var n := maxi(weapons.size(), 1)
 	var gap := 4.0
@@ -146,7 +146,7 @@ func _draw() -> void:
 			_text(Vector2(r.position.x, r.end.y - 14.0), "L%d" % SurvivalArsenal.level(id), 16, PixelUI.CREAM, HORIZONTAL_ALIGNMENT_RIGHT, s - 2.0)
 
 	# dash + buffs
-	y += 40.0
+	y += 39.0
 	var dash_t: float = game._dash_t
 	var dash_cd: float = game.stats.dash_cd
 	_text(Vector2(x, y - 2.0), "DASH", 18, Color(0.55, 0.9, 1.0) if dash_t <= 0.0 else PixelUI.MUTED)
@@ -157,7 +157,7 @@ func _draw() -> void:
 	for b in buffs:
 		var left_t: float = b[1]
 		if left_t > 0.0:
-			draw_texture_rect(icon(str(b[0])), Rect2(bx, y - 1.0, 20, 20), false)
+			draw_texture_rect(icon(str(b[0])), Rect2(bx, y + 3.0, 20, 20), false)
 			bx += 22.0 + _text(Vector2(bx + 22.0, y - 1.0), str(ceili(left_t)), 20, PixelUI.CREAM) + 8.0
 
 	# score + threat

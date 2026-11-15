@@ -22,7 +22,7 @@ const POST_SHADER := preload("res://shaders/post_fx.gdshader")
 const FONT := preload("res://assets/fonts/Jersey10-Regular.ttf")
 const W := 62                  # island bounding box (cells)
 const H := 44
-const M := 8                   # open water around it (cells)
+const M := 16                  # open water around it (cells): the camera never sees past it
 const TILE := 16.0
 const GRASS := Vector2i(0, 0)
 const DIRT := Vector2i(1, 0)
@@ -32,17 +32,17 @@ const WATER := Vector2i(3, 1)
 
 const BOSSES := [
 	{"name": "Slime King", "tpl": "slime", "sprite": "slime_king", "tint": Color(0.5, 0.75, 1.0), "shot": Color(0.5, 0.8, 1.0), "patterns": ["slam", "summon", "ring"]},
-	{"name": "The Watcher", "tpl": "eye", "tint": Color(1.0, 0.85, 0.85), "shot": Color(1.0, 0.35, 0.4), "patterns": ["aimed", "charge", "summon"]},
-	{"name": "Bone Lord", "tpl": "skeleton", "tint": Color(1.0, 0.95, 0.85), "shot": Color(0.95, 0.92, 0.8), "patterns": ["ring", "aimed", "spiral"]},
+	{"name": "The Watcher", "tpl": "eye", "sprite": "boss_watcher", "tint": Color(1.0, 0.95, 0.95), "shot": Color(1.0, 0.35, 0.4), "patterns": ["aimed", "charge", "summon"]},
+	{"name": "Bone Lord", "tpl": "skeleton", "sprite": "boss_bonelord", "tint": Color(1.0, 0.98, 0.94), "shot": Color(0.95, 0.92, 0.8), "patterns": ["ring", "aimed", "spiral"]},
 	{"name": "Ember Golem", "tpl": "golem", "tint": Color(1.0, 0.6, 0.35), "shot": Color(1.0, 0.5, 0.15), "patterns": ["charge", "trail", "ring"], "minion": "zombie"},
 	{"name": "Wraith Queen", "tpl": "ghost", "tint": Color(0.75, 0.75, 1.0), "shot": Color(0.7, 0.6, 1.0), "patterns": ["teleport", "spiral", "summon"]},
 	{"name": "Brood Mother", "tpl": "spider", "tint": Color(1.0, 0.75, 0.8), "shot": Color(0.9, 0.3, 0.4), "patterns": ["web", "summon", "charge"]},
-	{"name": "Hive Queen", "tpl": "hornet", "tint": Color(1.0, 0.85, 0.6), "shot": Color(1.0, 0.85, 0.2), "patterns": ["spread", "summon", "homing"]},
+	{"name": "Hive Queen", "tpl": "hornet", "sprite": "boss_hive", "tint": Color(1.0, 0.96, 0.9), "shot": Color(1.0, 0.85, 0.2), "patterns": ["spread", "summon", "homing"]},
 	{"name": "Storm Bat", "tpl": "bat", "tint": Color(0.7, 0.85, 1.0), "shot": Color(0.6, 0.85, 1.0), "patterns": ["charge", "aimed", "spread"]},
 	{"name": "Necromancer", "tpl": "mage", "tint": Color(0.55, 0.45, 0.6), "shot": Color(0.6, 1.0, 0.6), "patterns": ["summon", "homing", "teleport"], "minion": "zombie"},
 	{"name": "Dire Alpha", "tpl": "wolf", "tint": Color(0.9, 0.8, 0.7), "shot": Color(1.0, 0.8, 0.4), "patterns": ["charge", "summon", "spread"]},
 	{"name": "Frost Titan", "tpl": "golem", "tint": Color(0.65, 0.85, 1.0), "shot": Color(0.7, 0.95, 1.0), "patterns": ["spread", "slam", "ring"], "minion": "bat"},
-	{"name": "Hollow Twin", "tpl": "zombie", "tint": Color(0.75, 0.55, 1.0), "shot": Color(0.8, 0.5, 1.0), "patterns": ["clones", "spiral", "homing"]},
+	{"name": "Hollow Twin", "tpl": "zombie", "sprite": "boss_twin", "tint": Color(0.95, 0.9, 1.0), "shot": Color(0.8, 0.5, 1.0), "patterns": ["clones", "spiral", "homing"]},
 ]
 const ALL_PATTERNS := ["ring", "spread", "spiral", "aimed", "charge", "slam", "summon", "teleport", "trail", "web", "homing", "clones"]
 const NAME_A := ["Ancient", "Cursed", "Feral", "Molten", "Hollow", "Rotten", "Thunder", "Frozen", "Shadow", "Iron", "Venom", "Crystal"]
@@ -171,7 +171,7 @@ var _base_speed := 200.0
 var _base_sprint := 350.0
 var _dash_was := false
 var _t := 0.0
-# dev/testing: -- --surv-round=N --surv-bot (auto-aim + auto-upgrade) --surv-god (no damage)
+# dev/testing: -- --surv-round=N --surv-bot (auto-aim + auto-upgrade) --surv-god (no damage) --surv-map=0..4
 var _bot := "--surv-bot" in OS.get_cmdline_user_args()
 var _fire_t_max := 0.3
 var _god := "--surv-god" in OS.get_cmdline_user_args()
@@ -232,6 +232,14 @@ func _ready() -> void:
 	player.add_to_group("actors")
 	ShaderWarmup.run(self)   # no shader-compile freezes later in play
 	_base_speed = player.speed
+	# depth-sort from the feet (the hero is drawn at 2x here), and keep the camera on the sea
+	player.depth_bias = 24.0 - (player.collider.shape as RectangleShape2D).extents.y
+	var cam: Camera2D = player.get_node("Camera2D")
+	cam.limit_left = 0
+	cam.limit_top = 0
+	cam.limit_right = int((W + 2 * M) * TILE * 2.0)
+	cam.limit_bottom = int((H + 2 * M) * TILE * 2.0)
+	cam.limit_enabled = true
 	_base_sprint = player.sprint_speed
 	hearts = HeartSystem.new()
 	hearts.max_hearts = 6
@@ -354,18 +362,29 @@ func _input(event: InputEvent) -> void:
 
 # Pixel crosshair so you always know where bolts will go.
 func _set_crosshair() -> void:
-	var img := Image.create(23, 23, false, Image.FORMAT_RGBA8)
-	var c := Color(1.0, 0.9, 0.4)
-	var o := Color(0.08, 0.05, 0.1)
-	for i in range(0, 23):
-		for k in [-1, 1]:
-			if abs(i - 11) > 3:
-				img.set_pixel(i, 11 + k, o); img.set_pixel(11 + k, i, o)
-	for i in range(0, 23):
-		if abs(i - 11) > 3:
-			img.set_pixel(i, 11, c); img.set_pixel(11, i, c)
-	img.set_pixel(11, 11, c)
-	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(img), Input.CURSOR_ARROW, Vector2(11, 11))
+	# a gold ring, four white ticks and a centre dot, all with a dark outline
+	var n := 41
+	var mid := n / 2
+	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	var gold := Color(1.0, 0.82, 0.3)
+	var white := Color(1.0, 1.0, 0.95)
+	var dark := Color(0.06, 0.04, 0.1, 0.95)
+	for pass_i in 2:   # outline first, colours on top
+		for x in n:
+			for y in n:
+				var dx := absi(x - mid)
+				var dy := absi(y - mid)
+				var d := Vector2(dx, dy).length()
+				var grow := 1.0 if pass_i == 0 else 0.0
+				var far := maxi(dx, dy)
+				var near := mini(dx, dy)
+				if absf(d - 11.0) < 1.2 + grow:
+					img.set_pixel(x, y, dark if pass_i == 0 else gold)
+				if near <= 1 + int(grow) and far >= 15 - int(grow) and far <= 19 + int(grow) and far < n / 2 + 1:
+					img.set_pixel(x, y, dark if pass_i == 0 else white)
+				if d < 1.9 + grow:
+					img.set_pixel(x, y, dark if pass_i == 0 else white)
+	Input.set_custom_mouse_cursor(ImageTexture.create_from_image(img), Input.CURSOR_ARROW, Vector2(mid, mid))
 
 
 # Flowers and grass tufts on the island, trees around the shore and by the ponds.
@@ -387,14 +406,18 @@ func _decorate_arena() -> void:
 		s.scale = Vector2.ONE * randf_range(0.7, 1.0)
 		s.z_index = int(s.position.y / 2.0) - 2
 		add_child(s)
+		_shadow(s, 12.0)
 	var trees := ["res://assets/trees/birch_1.png", "res://assets/trees/fir_tree_2.png", "res://assets/trees/jungle_tree_3.png",
 		"res://assets/trees/middle_lane_tree2.png", "res://assets/trees/birch_3.png", "res://assets/trees/fir_tree_1.png"]
 	var placed: Array[Vector2] = []
 	var tries := 0
-	while placed.size() < 26 and tries < 600:
+	while placed.size() < 34 and tries < 900:
 		tries += 1
 		var c: Vector2i = walk_cells.pick_random()
-		if not _near_water(c, 2) or Vector2(c).distance_to(Vector2(_island_center() / TILE)) < 10.0:
+		# most trees stand along the shore; the last few are scattered inland (not on the camp)
+		var inland := placed.size() >= 26 and tilemap.get_cell_atlas_coords(c) == GRASS
+		if not (_near_water(c, 2) or inland) or Vector2(c).distance_to(Vector2(_island_center() / TILE)) < 10.0 \
+				or _bridge_cells.keys().any(func(b): return absi(b.x - c.x) <= 3 and absi(b.y - c.y) <= 3):   # keep bridges clear
 			continue
 		var at := (Vector2(c) + Vector2(0.5, 0.9)) * TILE
 		if placed.any(func(q): return q.distance_to(at) < 40.0):
@@ -409,13 +432,14 @@ func _decorate_arena() -> void:
 		t.position = at
 		t.z_index = int(t.position.y / 2.0)
 		add_child(t)
+		_shadow(t, t.texture.get_width() * 0.55)
 	# rocks, bushes, bones and old ruins scattered about (looks only: nothing blocks the way)
 	var small := ["rock1", "rock2", "bush", "bush", "stump", "grass", "grass", "grass", "bones", "mushroom", "crystal"]
 	for k in 90:
 		var c: Vector2i = walk_cells.pick_random()
 		var kind: String = small.pick_random()
 		var ground := tilemap.get_cell_atlas_coords(c)
-		if ground == LAVA or (ground == SAND and kind in ["bush", "grass", "mushroom", "stump"]):
+		if ground == LAVA or _bridge_cells.has(c) or (ground == SAND and kind in ["bush", "grass", "mushroom", "stump"]):
 			continue
 		var pr := _prop(kind, (Vector2(c) + Vector2(randf(), randf())) * TILE, randf() < 0.5)
 		if kind in ["bush", "grass", "mushroom"]:
@@ -430,7 +454,7 @@ func _decorate_arena() -> void:
 		tries += 1
 		var c: Vector2i = walk_cells.pick_random()
 		var at := (Vector2(c) + Vector2(0.5, 0.5)) * TILE
-		if tilemap.get_cell_atlas_coords(c) not in [GRASS, DIRT] or at.distance_to(_island_center()) < 110.0 \
+		if tilemap.get_cell_atlas_coords(c) not in [GRASS, DIRT] or _bridge_cells.has(c) or at.distance_to(_island_center()) < 110.0 \
 				or placed.any(func(q): return q.distance_to(at) < 70.0):
 			continue
 		placed.append(at)
@@ -448,7 +472,15 @@ func _decorate_arena() -> void:
 	_camp_light = PointLight2D.new()
 	_camp_light.texture = preload("res://assets/wildlife/light_soft.png")
 	_camp_light.color = Color(1.0, 0.62, 0.3)
-	_camp_light.texture_scale = 0.9
+	_camp_light.texture_scale = 1.3
+	# plank bridges over the channels (see _cut_channel)
+	for cell in _bridge_cells:
+		var b := Sprite2D.new()
+		b.texture = preload("res://assets/survival/prop_bridge.png")
+		b.position = (Vector2(cell) + Vector2(0.5, 0.5)) * TILE
+		b.rotation = 0.0 if _bridge_cells[cell] else PI / 2.0
+		b.z_index = 1
+		add_child(b)
 	_camp_light.position = fire_spr.position + Vector2(0, -6)
 	_camp_light.range_z_min = -4096
 	_camp_light.range_z_max = 4096
@@ -464,17 +496,25 @@ func _prop(kind: String, at: Vector2, flip := false) -> Sprite2D:
 	s.flip_h = flip
 	s.position = at
 	s.z_index = int(at.y / 2.0) - 1
+	s.scale = Vector2.ONE * {"tent": 1.9, "pillar": 1.6, "ruin": 1.6}.get(kind, 1.35)   # sized against the hero
 	add_child(s)
-	var sh := Sprite2D.new()   # soft shadow at its feet
-	sh.texture = preload("res://assets/wildlife/shadow_soft.png")
-	sh.scale = Vector2(0.7, 0.5) * s.texture.get_height() / 16.0
-	sh.position = Vector2(0, 1)
-	sh.show_behind_parent = true
-	s.add_child(sh)
+	_shadow(s, s.texture.get_height() * (0.8 if kind != "pillar" else 0.5))
 	return s
 
 
+# A soft dark patch on the ground under a sprite (`width` in the sprite's own pixels).
+func _shadow(s: Sprite2D, width: float) -> void:
+	var sh := Sprite2D.new()
+	sh.texture = SurvivalFx.GLOW
+	sh.modulate = Color(0.0, 0.02, 0.05, 0.6)
+	sh.scale = Vector2(width * 1.5, width * 0.7) / 64.0
+	sh.position = Vector2(0, 1)
+	sh.show_behind_parent = true
+	s.add_child(sh)
+
+
 var _sways := {}
+var _bridge_cells := {}               # Vector2i -> true when the planks run left-right
 
 # Shared wind materials (a few phases, so plants do not all lean in step).
 func _sway(strength: float) -> ShaderMaterial:
@@ -628,6 +668,16 @@ func _build_arena() -> void:
 					tilemap.set_cell(cell, 0, WATER if pond else LAVA)
 				elif pond and Vector2(x, y * 1.2).length() < rad + 1.0 and tilemap.get_cell_atlas_coords(cell) in [GRASS, DIRT]:
 					tilemap.set_cell(cell, 0, SAND)
+	# some islands are split by a channel or two, crossed by plank bridges
+	_bridge_cells.clear()
+	var layout := randi() % 5   # 0-1 one island · 2 a rift · 3 a river · 4 both
+	for a in OS.get_cmdline_user_args():   # testing: --surv-map=N
+		if a.begins_with("--surv-map="):
+			layout = int(a.get_slice("=", 1))
+	if layout == 2 or layout == 4:
+		_cut_channel(true, c, shape)
+	if layout >= 3:
+		_cut_channel(false, c, shape)
 	# keep only land connected to the middle (no unreachable islets)
 	var start := Vector2i(c)
 	var todo: Array[Vector2i] = [start]
@@ -688,6 +738,32 @@ func _build_arena() -> void:
 	fx.visible = not Screen.low()
 	layer.add_child(fx)
 	add_child(layer)
+
+
+# Cuts a wobbly water channel through the island (vertical = runs north-south) a good
+# way from the middle, with two plank bridges across it.
+func _cut_channel(vertical: bool, c: Vector2, wobble: FastNoiseLite) -> void:
+	var side := -1.0 if randf() < 0.5 else 1.0
+	var off := side * (randf_range(11.0, 15.0) if vertical else randf_range(8.0, 11.0))
+	var along := c.y if vertical else c.x
+	var crossings := [int(along - randf_range(5.0, 9.0)), int(along + randf_range(5.0, 9.0))]
+	for i in (H if vertical else W) + 2 * M:
+		var mid := int((c.x if vertical else c.y) + off + wobble.get_noise_2d(i * 1.7, 300.0 if vertical else 600.0) * 3.0)
+		var bridge := i in crossings or (i - 1) in crossings   # two tiles wide
+		for k in range(-3, 4):
+			var cell := Vector2i(mid + k, i) if vertical else Vector2i(i, mid + k)
+			var here := tilemap.get_cell_atlas_coords(cell)
+			if bridge and absi(k) <= 1:
+				tilemap.set_cell(cell, 0, DIRT)
+				_bridge_cells[cell] = vertical   # true: planks are walked left-right
+			elif here in [WATER, Vector2i(-1, -1)]:
+				continue
+			elif bridge:
+				tilemap.set_cell(cell, 0, DIRT)   # trodden path up to the bridge
+			elif absi(k) <= 1:
+				tilemap.set_cell(cell, 0, WATER)
+			elif absi(k) == 2:
+				tilemap.set_cell(cell, 0, SAND)    # banks
 
 
 # ------------------------------------------------------------------ day / night
@@ -1220,7 +1296,6 @@ func _fire(id: String, aim: Vector2) -> void:
 	_muzzle.color = col
 	_muzzle.energy = lerpf(0.25, 0.9, dark)
 	var n: int = stats.multishot
-	SurvivalFx.blast(self, at, 6.0, col)   # muzzle flash
 	match id:
 		"scatter":
 			sfx.play("boom", 0.25)

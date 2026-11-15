@@ -176,8 +176,8 @@ class Blast extends Node2D:
 	func _draw() -> void:
 		var k := clampf(_t / LIFE, 0.0, 1.0)
 		var e := 1.0 - pow(1.0 - k, 3.0)   # shoots out, then eases
-		if _t < 0.06:
-			draw_circle(Vector2.ZERO, radius * 0.75, Color(1, 1, 1, 0.9))
+		if _t < 0.05:
+			draw_circle(Vector2.ZERO, radius * 0.45, Color(1, 1, 1, 0.7))
 		draw_circle(Vector2.ZERO, radius * e, Color(color, 0.4 * (1.0 - k)))
 		draw_circle(Vector2.ZERO, radius * 0.55 * (1.0 - k), Color(color.lightened(0.6), 0.85 * (1.0 - k)))
 		draw_arc(Vector2.ZERO, radius * e, 0.0, TAU, 32, Color(color.lightened(0.5), 1.0 - k), 2.0)

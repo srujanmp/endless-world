@@ -74,7 +74,8 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - Day/night cycle with hand torch, glowing lava and light shafts (night: faster spawns, +50% coins); power-up drops (rage, shield, magnet, bomb); radar
 - Run flow: kills fill an XP bar and every level is a perk picked on the spot; quick kills chain into combos (more score, bonus coins); from round 2 most rounds have an event (swarm, elite guard, gold rush, air raid, siege, blood moon); after a boss: perk, then loadout (Armory one button away), then a build phase
 - Hand-drawn HUD (`survival/hud.gd`: XP strip, wave progress, weapon slots with icons, buffs, combo) and effects (`survival/fx.gd`: glowing shots with trails, blasts with sparks and scorch marks, death pops, fireflies, pollen, lava embers); island props and a trader's camp with a fire
-- Sprites: `tools/make_mobs.py`, `tools/make_survival_art.py`; test flags `--surv-round=N --surv-bot --surv-god --surv-boss-now`
+- Islands vary: some are split by a channel or two with plank bridges; the sea reaches past the camera, props cast shadows and sort by depth from the feet; four bosses have their own 32px art
+- Sprites: `tools/make_mobs.py`, `tools/make_survival_art.py`; screenshots: `tools/screenshot.tscn` (needs a window); test flags `--surv-map=0..4`, `--surv-round=N --surv-bot --surv-god --surv-boss-now`
 
 **Multiplayer** (details in the PDF)
 - Room codes and invite links (`?room=CODE` joins directly), up to 10 players, coloured name tags, chat bubbles, live scoreboard; everyone keeps their chosen character

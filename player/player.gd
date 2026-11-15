@@ -2,6 +2,7 @@ extends CharacterBody2D
 
 # ================= MOVEMENT =================
 @export var speed := 200.0
+var depth_bias := 0.0   # extra pixels down to the feet for depth sorting (Survival draws the hero at 2x)
 @export var sprint_speed := 350.0  # 🏃 Added
 @export var water_speed_multiplier := 0.6
 
@@ -212,7 +213,7 @@ func play_footstep():
 # ==================================================
 func update_depth():
 	var rect := collider.shape as RectangleShape2D
-	var feet_y: float = global_position.y + rect.extents.y
+	var feet_y: float = global_position.y + rect.extents.y + depth_bias
 	z_index = int(feet_y/4)
 
 # ==================================================

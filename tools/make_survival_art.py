@@ -348,50 +348,59 @@ def _(d, f):
 # ===================================================================== friendly
 @art('trooper')
 def _(d, f):
-    camo, dark, light, skin = (96, 120, 70), (66, 86, 48), (132, 156, 98), (228, 180, 138)
+    green, dark, light, skin = (88, 124, 72), (56, 84, 50), (128, 164, 100), (236, 190, 150)
     lx = f
-    d.rectangle((8 + lx, 17, 10 + lx, 22), fill=dark); d.rectangle((13 - lx, 17, 15 - lx, 22), fill=dark)
-    d.rectangle((7 + lx, 21, 10 + lx, 22), fill=(50, 40, 34)); d.rectangle((13 - lx, 21, 16 - lx, 22), fill=(50, 40, 34))
-    d.rectangle((4, 9, 7, 16), fill=(110, 90, 60))                         # backpack
-    d.rectangle((7, 9, 16, 17), fill=camo); d.point([(9, 11), (14, 14), (11, 15)], fill=dark); d.point([(13, 10), (8, 14)], fill=light)
-    d.rectangle((7, 15, 16, 15), fill=(60, 50, 40))
-    d.rectangle((9, 3, 15, 9), fill=skin); d.point([(12, 6), (14, 6)], fill=K)
-    d.chord((8, 0, 16, 8), 180, 360, fill=camo); d.line((7, 4, 16, 4), fill=dark)   # helmet
-    d.point([(10, 2), (13, 1)], fill=light)
-    d.rectangle((13, 11, 22, 12), fill=(60, 60, 66)); d.rectangle((14, 13, 16, 14), fill=(90, 70, 50))   # rifle
-    d.point((22, 11), fill=(140, 140, 150))
-    if f:
-        d.point([(23, 11), (23, 12)], fill=(255, 230, 120))
+    d.rectangle((8 + lx, 18, 10 + lx, 21), fill=dark); d.rectangle((13 - lx, 18, 15 - lx, 21), fill=dark)        # legs
+    d.rectangle((7 + lx, 21, 10 + lx, 22), fill=(50, 40, 36)); d.rectangle((13 - lx, 21, 16 - lx, 22), fill=(50, 40, 36))   # boots
+    d.rectangle((4, 9, 7, 17), fill=(110, 96, 64)); d.rectangle((4, 9, 7, 10), fill=(146, 130, 88))               # pack
+    d.rectangle((7, 9, 16, 18), fill=green); d.rectangle((14, 9, 16, 18), fill=dark); d.rectangle((7, 9, 8, 13), fill=light)
+    d.rectangle((7, 15, 16, 16), fill=(70, 56, 40)); d.point((11, 15), fill=(230, 200, 90))                       # belt
+    d.rectangle((9, 11, 10, 13), fill=dark); d.rectangle((12, 11, 13, 13), fill=dark)                             # pockets
+    d.rectangle((8, 4, 15, 9), fill=skin); d.rectangle((8, 8, 9, 9), fill=(206, 158, 124))
+    d.point([(11, 6), (14, 6)], fill=K); d.point([(12, 8), (13, 8)], fill=(176, 116, 100))
+    d.pieslice((6, -1, 17, 9), 180, 360, fill=green); d.rectangle((6, 4, 17, 5), fill=dark)                       # helmet
+    d.point([(9, 2), (10, 1), (11, 1)], fill=light); d.line((8, 6, 8, 8), fill=(44, 44, 44))
+    d.rectangle((13, 12, 22, 13), fill=(52, 54, 64)); d.rectangle((15, 14, 16, 15), fill=(52, 54, 64))            # rifle
+    d.rectangle((11, 12, 13, 14), fill=(120, 84, 56)); d.rectangle((15, 12, 18, 12), fill=(96, 100, 114))
+    d.point((22, 12), fill=(214, 214, 224)); d.rectangle((12, 13, 14, 14), fill=skin)
 
 
 @art('trader')
 def _(d, f):
-    coat, dark, light, skin = (40, 140, 150), (26, 96, 106), (80, 186, 190), (236, 190, 150)
+    coat, dark, light, skin, gold = (40, 140, 150), (26, 96, 106), (86, 192, 196), (236, 190, 150), (240, 196, 80)
     b = f
-    d.rectangle((2, 5 + b, 9, 17 + b), fill=(150, 104, 60)); d.rectangle((2, 5 + b, 9, 7 + b), fill=(120, 80, 44))   # big pack
-    d.point([(4, 10 + b), (6, 12 + b)], fill=(255, 210, 60)); d.rectangle((3, 14 + b, 8, 15 + b), fill=(200, 60, 60))
-    d.line((5, 3 + b, 5, 5 + b), fill=(120, 80, 44)); d.ellipse((3, 1 + b, 7, 4 + b), fill=(220, 60, 60))   # pot on top
-    d.polygon([(9, 10), (17, 10), (19, 22), (8, 22)], fill=coat); d.polygon([(14, 10), (17, 10), (19, 22), (15, 22)], fill=dark)
-    d.line((13, 11, 13, 21), fill=(230, 190, 80)); d.rectangle((9, 16, 18, 17), fill=(110, 70, 40))
-    d.rectangle((10, 4, 16, 10), fill=skin); d.point([(12, 6), (15, 6)], fill=K)
-    d.line((11, 8, 16, 8), fill=(120, 70, 40)); d.point([(10, 9), (17, 9)], fill=(120, 70, 40))   # mustache
-    d.rectangle((7, 2, 19, 3), fill=(120, 60, 120)); d.rectangle((9, 0, 17, 2), fill=(150, 80, 150))   # wide hat
-    d.line((9, 1, 17, 1), fill=(230, 190, 80))
-    d.line((18, 12, 21, 14 - b), fill=coat); d.ellipse((19, 12 - b, 22, 15 - b), fill=(255, 210, 60))   # shows a coin
+    d.rectangle((1, 6 + b, 8, 18 + b), fill=(150, 104, 60)); d.rectangle((1, 6 + b, 8, 8 + b), fill=(184, 134, 80))   # big pack
+    d.rectangle((1, 12 + b, 8, 13 + b), fill=(110, 74, 44)); d.point((5, 12 + b), fill=gold)
+    d.rectangle((2, 15 + b, 7, 16 + b), fill=(200, 60, 60)); d.point([(3, 10 + b), (6, 10 + b)], fill=(250, 220, 120))
+    d.line((4, 3 + b, 4, 6 + b), fill=(110, 74, 44)); d.ellipse((2, 1 + b, 6, 4 + b), fill=(220, 70, 60)); d.point((3, 2 + b), fill=(255, 170, 150))
+    d.rectangle((10, 20, 12, 22), fill=(70, 50, 40)); d.rectangle((14, 20, 16, 22), fill=(70, 50, 40))             # boots
+    d.polygon([(9, 10), (17, 10), (19, 21), (8, 21)], fill=coat); d.polygon([(14, 10), (17, 10), (19, 21), (15, 21)], fill=dark)
+    d.line((9, 11, 9, 20), fill=light); d.line((13, 11, 13, 20), fill=gold); d.rectangle((9, 16, 18, 17), fill=(110, 70, 40))
+    d.point((13, 16), fill=gold); d.rectangle((10, 10, 16, 11), fill=(200, 60, 60))                                # scarf
+    d.rectangle((10, 4, 16, 10), fill=skin); d.rectangle((15, 5, 16, 10), fill=(210, 160, 124))
+    d.point([(12, 6), (15, 6)], fill=K); d.point((13, 7), fill=(206, 150, 120))
+    d.line((11, 8, 16, 8), fill=(110, 64, 36)); d.point([(10, 9), (17, 9)], fill=(110, 64, 36))                    # moustache
+    d.rectangle((7, 2, 19, 3), fill=(110, 54, 116)); d.rectangle((9, 0, 17, 2), fill=(150, 80, 156))               # wide hat
+    d.line((9, 2, 17, 2), fill=gold); d.line((17, 0, 20, -1), fill=(250, 250, 240)); d.point((18, 1), fill=(250, 250, 240))
+    d.line((18, 12, 21, 14 - b), fill=coat); d.ellipse((19, 11 - b, 22, 14 - b), fill=(255, 214, 70)); d.point((20, 12 - b), fill=(255, 250, 200))
 
 
 @art('medic')
 def _(d, f):
-    coat, shade, red, skin = (240, 242, 248), (196, 204, 220), (220, 50, 60), (232, 186, 150)
+    coat, shade, red, skin = (242, 244, 250), (196, 204, 222), (222, 52, 62), (232, 186, 150)
     lx = f
-    d.rectangle((8 + lx, 17, 10 + lx, 22), fill=(80, 100, 150)); d.rectangle((13 - lx, 17, 15 - lx, 22), fill=(80, 100, 150))
-    d.rectangle((7, 9, 16, 18), fill=coat); d.rectangle((13, 9, 16, 18), fill=shade)
-    d.rectangle((10, 11, 11, 15), fill=red); d.rectangle((8, 12, 13, 13), fill=red)          # cross
-    d.rectangle((9, 3, 15, 9), fill=skin); d.point([(11, 6), (14, 6)], fill=K); d.point([(12, 8), (13, 8)], fill=(200, 110, 110))
-    d.rectangle((8, 1, 16, 3), fill=(90, 150, 220)); d.rectangle((8, 0, 15, 1), fill=(120, 180, 240))
-    d.point((7, 4), fill=(90, 60, 40)); d.rectangle((6, 3, 8, 8), fill=(110, 70, 46))        # hair
-    d.rectangle((16, 13 - f, 21, 17 - f), fill=(200, 60, 60)); d.rectangle((18, 14 - f, 19, 16 - f), fill=(255, 255, 255))   # med bag
-    d.line((17, 12 - f, 20, 12 - f), fill=(120, 30, 30))
+    d.rectangle((8 + lx, 18, 10 + lx, 21), fill=(70, 96, 150)); d.rectangle((13 - lx, 18, 15 - lx, 21), fill=(70, 96, 150))
+    d.rectangle((7 + lx, 21, 10 + lx, 22), fill=(60, 50, 50)); d.rectangle((13 - lx, 21, 16 - lx, 22), fill=(60, 50, 50))
+    d.rectangle((7, 9, 16, 19), fill=coat); d.rectangle((14, 9, 16, 19), fill=shade); d.line((11, 9, 11, 19), fill=shade)
+    d.rectangle((8, 11, 9, 13), fill=red); d.point([(7, 12), (10, 12)], fill=red)                                  # cross badge
+    d.line((7, 9, 14, 15), fill=(120, 84, 56))                                                                    # satchel strap
+    d.rectangle((8, 4, 15, 9), fill=skin); d.rectangle((14, 5, 15, 9), fill=(208, 160, 126))
+    d.point([(10, 6), (13, 6)], fill=K); d.line((10, 8, 13, 8), fill=(240, 250, 255))                             # mask
+    d.pieslice((6, 0, 17, 9), 180, 360, fill=coat); d.rectangle((6, 4, 17, 4), fill=shade)                        # helmet
+    d.rectangle((11, 1, 12, 3), fill=red); d.point([(10, 2), (13, 2)], fill=red)
+    d.rectangle((16, 13, 21, 18), fill=red); d.rectangle((16, 13, 21, 13), fill=(250, 110, 110))                   # medkit
+    d.rectangle((18, 14, 19, 17), fill=(255, 255, 255)); d.rectangle((17, 15, 20, 16), fill=(255, 255, 255))
+    d.line((17, 12, 20, 12), fill=(110, 30, 40)); d.rectangle((15, 12, 16, 14), fill=skin)
 
 
 @art('crate', 20)
@@ -756,8 +765,14 @@ def _(d, f):
 
 @art('prop_bush', 16, 1)
 def _(d, f):
-    d.ellipse((1, 6, 9, 14), fill=(52, 120, 62)); d.ellipse((6, 4, 14, 14), fill=(62, 138, 70)); d.ellipse((4, 3, 10, 9), fill=(78, 160, 84))
-    d.point([(6, 5), (10, 7), (4, 9)], fill=(120, 196, 110)); d.point([(8, 10), (12, 11), (3, 12)], fill=(230, 70, 90))
+    dk, md, lt, hi = (30, 84, 50), (48, 122, 62), (82, 162, 78), (146, 208, 112)
+    d.ellipse((1, 7, 8, 14), fill=dk); d.ellipse((7, 7, 14, 14), fill=dk); d.ellipse((3, 2, 12, 11), fill=dk)   # dark underside
+    d.ellipse((1, 6, 7, 12), fill=md); d.ellipse((7, 6, 14, 12), fill=md); d.ellipse((3, 2, 11, 9), fill=md)
+    d.ellipse((4, 2, 9, 6), fill=lt); d.ellipse((2, 7, 5, 9), fill=lt); d.ellipse((9, 7, 12, 9), fill=lt)       # leaf clumps
+    d.point([(5, 3), (7, 2), (3, 7), (10, 7), (8, 5)], fill=hi)
+    d.point([(6, 8), (8, 10), (4, 11), (11, 11), (7, 12)], fill=dk)                                            # gaps between leaves
+    for x, y in ((6, 6), (11, 9), (3, 10)):                                                                    # white blossoms
+        d.point([(x, y - 1), (x - 1, y), (x + 1, y), (x, y + 1)], fill=(250, 248, 240)); d.point((x, y), fill=(250, 210, 80))
 
 
 @art('prop_stump', 16, 1)
@@ -837,6 +852,95 @@ def _(d, f):
     else:
         d.polygon([(9, 3), (11, 9), (10, 12), (5, 12), (4, 7), (6, 5)], fill=(255, 140, 40)); d.polygon([(8, 7), (9, 10), (8, 12), (6, 12), (6, 9)], fill=(255, 240, 140))
         d.point((5, 2), fill=(255, 200, 90))
+
+
+# ===================================================================== bridge + bosses
+@art('prop_bridge', 16, 1)
+def _(d, f):
+    # one plank tile, walked left-right (rotated for north-south bridges); fills the whole
+    # tile so tiles join up without outlines
+    d.rectangle((0, 0, 15, 15), fill=(150, 104, 62))
+    for x in (0, 4, 8, 12):
+        d.rectangle((x, 2, x + 2, 13), fill=(176, 128, 80)); d.line((x + 3, 2, x + 3, 13), fill=(104, 70, 44))
+        d.point((x + 1, 4), fill=(120, 84, 52)); d.point((x + 1, 11), fill=(120, 84, 52))
+    d.rectangle((0, 0, 15, 1), fill=(96, 62, 40)); d.rectangle((0, 14, 15, 15), fill=(96, 62, 40))              # rails
+    d.line((0, 0, 15, 0), fill=(132, 92, 58)); d.line((0, 14, 15, 14), fill=(132, 92, 58))
+
+
+@art('boss_watcher', 32)
+def _(d, f):
+    flesh, dark, light = (150, 40, 60), (96, 22, 44), (204, 86, 100)
+    for i, x in enumerate((8, 13, 19, 24)):                                                # tentacles
+        s = (i + f) % 2
+        d.line((x, 22, x - 1 + 2 * s, 27), fill=dark, width=2); d.line((x - 1 + 2 * s, 27, x + 1 - 2 * s, 30), fill=flesh)
+    d.polygon([(8, 8), (4, 1), (12, 5)], fill=dark); d.polygon([(23, 8), (27, 1), (19, 5)], fill=dark)   # horns
+    d.polygon([(14, 5), (16, 0), (17, 5)], fill=dark)
+    d.ellipse((4, 4, 27, 25), fill=flesh); d.ellipse((6, 5, 16, 11), fill=light)
+    d.ellipse((7, 8, 24, 23), fill=(242, 238, 228))                                        # eyeball
+    d.line((8, 14, 11, 15), fill=(214, 84, 94)); d.line((23, 18, 20, 17), fill=(214, 84, 94)); d.line((10, 20, 12, 18), fill=(214, 84, 94))
+    d.ellipse((11, 10, 20, 21), fill=(226, 140, 36)); d.ellipse((12, 11, 19, 20), fill=(252, 204, 64))
+    d.polygon([(15 + f, 11), (17 + f, 15), (15 + f, 20), (14 + f, 15)], fill=K)             # slit pupil
+    d.point([(13, 12), (14, 12), (13, 13)], fill=(255, 255, 255))
+    d.chord((6, 6, 25, 22), 200, 340, fill=flesh); d.arc((6, 6, 25, 22), 200, 340, fill=dark)   # heavy lid
+    d.point([(6, 16), (25, 14), (9, 23), (22, 23)], fill=dark)
+
+
+@art('boss_bonelord', 32)
+def _(d, f):
+    bone, shade, cape, cape_d, gold = (238, 234, 216), (186, 180, 158), (112, 50, 132), (72, 30, 92), (250, 204, 70)
+    d.polygon([(7, 12), (24, 12), (28, 29 - f), (3, 29 - f)], fill=cape); d.polygon([(7, 12), (11, 12), (8, 29 - f), (3, 29 - f)], fill=cape_d)
+    d.polygon([(7, 12), (24, 12), (22, 15), (9, 15)], fill=gold)                            # collar
+    d.rectangle((12, 15, 19, 23), fill=K); d.rectangle((15, 15, 16, 23), fill=bone)        # ribcage
+    for y in (16, 19, 22):
+        d.line((12, y, 19, y), fill=bone)
+    d.rectangle((12, 24, 14, 29), fill=shade); d.rectangle((17, 24, 19, 29), fill=shade)
+    d.rectangle((10 + f, 29, 14 + f, 30), fill=bone); d.rectangle((17 - f, 29, 21 - f, 30), fill=bone)
+    d.line((11, 16, 6, 21), fill=bone, width=2); d.line((20, 16, 25, 20), fill=bone, width=2)   # arms
+    d.rectangle((25, 3, 26, 21), fill=(206, 212, 226)); d.line((25, 3, 25, 21), fill=(255, 255, 255))   # sword
+    d.polygon([(25, 3), (26, 3), (26, 1)], fill=(206, 212, 226)); d.rectangle((23, 20, 28, 21), fill=gold); d.rectangle((25, 22, 26, 24), fill=(120, 84, 56))
+    d.ellipse((9, 3, 22, 13), fill=bone); d.rectangle((12, 11, 19, 14), fill=bone); d.ellipse((17, 5, 22, 12), fill=shade)
+    d.rectangle((11, 7, 14, 10), fill=K); d.rectangle((17, 7, 20, 10), fill=K); d.point([(12, 8), (18, 8)], fill=(255, 70, 70))
+    d.point([(15, 11), (16, 11)], fill=K); d.point([(13, 13), (15, 13), (17, 13)], fill=K)
+    d.polygon([(9, 5), (9, 0), (12, 3), (15, 0), (16, 0), (19, 3), (22, 0), (22, 5)], fill=gold)   # crown
+    d.point([(15, 4), (16, 4)], fill=(230, 60, 80)); d.point([(11, 4), (20, 4)], fill=(90, 200, 250))
+
+
+@art('boss_hive', 32)
+def _(d, f):
+    y, bk, wing = (250, 200, 50), (44, 34, 38), (206, 228, 246, 215)
+    if f == 0:
+        d.ellipse((1, 2, 14, 12), fill=wing); d.ellipse((17, 2, 30, 12), fill=wing)
+    else:
+        d.ellipse((0, 8, 13, 17), fill=wing); d.ellipse((18, 8, 31, 17), fill=wing)
+    for yy in range(13, 30):                                                               # striped abdomen
+        half = int(round(7.5 * (1.0 - ((yy - 21) / 8.5) ** 2) ** 0.5))
+        d.line((15 - half, yy, 16 + half, yy), fill=bk if ((yy - 14) // 2) % 2 == 1 else y)
+    d.line((11, 15, 11, 19), fill=(255, 236, 140)); d.rectangle((15, 30, 16, 31), fill=bk)   # shine, stinger
+    for x0, x1 in ((9, 5), (22, 26)):
+        d.line((x0, 17, x1, 20), fill=bk); d.line((x0, 22, x1, 25), fill=bk)               # legs
+    d.ellipse((10, 5, 21, 15), fill=(252, 214, 76)); d.ellipse((11, 6, 15, 9), fill=(255, 240, 150))
+    d.ellipse((11, 9, 14, 13), fill=K); d.ellipse((17, 9, 20, 13), fill=K); d.point([(12, 10), (18, 10)], fill=(255, 90, 90))
+    d.line((14, 14, 17, 14), fill=bk); d.line((13, 5, 11, 1), fill=bk); d.line((18, 5, 20, 1), fill=bk)
+    d.polygon([(12, 7), (12, 3), (14, 5), (15, 2), (16, 2), (17, 5), (19, 3), (19, 7)], fill=(255, 150, 60))   # crown
+    d.point([(15, 5), (16, 5)], fill=(230, 60, 120))
+
+
+@art('boss_twin', 32)
+def _(d, f):
+    skin, dark, cloth, cloth_d = (124, 174, 112), (84, 124, 82), (96, 64, 128), (66, 42, 92)
+    d.rectangle((11 + f, 24, 14 + f, 29), fill=(58, 48, 78)); d.rectangle((17 - f, 24, 20 - f, 29), fill=(58, 48, 78))
+    d.rectangle((10 + f, 29, 14 + f, 30), fill=K); d.rectangle((17 - f, 29, 21 - f, 30), fill=K)
+    d.rectangle((8, 13, 23, 25), fill=cloth); d.rectangle((19, 13, 23, 25), fill=cloth_d)
+    d.line((15, 13, 16, 25), fill=K); d.point([(14, 15), (17, 15), (14, 19), (17, 19), (14, 23), (17, 23)], fill=(230, 220, 200))   # stitches
+    d.polygon([(8, 25), (10, 27), (12, 25), (14, 27), (16, 25), (18, 27), (20, 25), (23, 27), (23, 25)], fill=cloth)   # torn hem
+    d.rectangle((2, 14 - f, 8, 17 - f), fill=skin); d.rectangle((2, 14 - f, 3, 17 - f), fill=dark)             # reaching arms
+    d.rectangle((23, 14 + f, 29, 17 + f), fill=skin); d.rectangle((28, 14 + f, 29, 17 + f), fill=dark)
+    d.rectangle((6, 3, 14, 12), fill=skin); d.rectangle((12, 5, 14, 12), fill=dark)                           # left head
+    d.rectangle((17, 2, 25, 11), fill=skin); d.rectangle((23, 4, 25, 11), fill=dark)                          # right head
+    d.rectangle((6, 2, 14, 4), fill=(56, 46, 66)); d.rectangle((17, 1, 25, 3), fill=(56, 46, 66)); d.point([(7, 5), (19, 4), (24, 4)], fill=(56, 46, 66))
+    d.point([(8, 7), (11, 7)], fill=(255, 232, 90)); d.point([(19, 6), (22, 6)], fill=(200, 120, 255))
+    d.line((8, 10, 12, 10), fill=K); d.point([(9, 11), (11, 11)], fill=(240, 240, 230))
+    d.line((19, 9, 23, 9), fill=K); d.point((21, 10), fill=(240, 240, 230))
 
 
 def glow(size=64):

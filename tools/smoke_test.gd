@@ -306,6 +306,8 @@ class Runner extends Node:
 			g._fire(id, Vector2.RIGHT)
 			await frames(6)
 			g._fire_t = 0.0
+		g.ammo.clear()   # the bot's random loadout may have handed out a gun
+		g._refresh_weapons()
 		for id in SurvivalArsenal.AIRDROP:
 			g._give_gun(id, 2)
 			g._fire(id, Vector2.RIGHT)
