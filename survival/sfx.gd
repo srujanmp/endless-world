@@ -22,6 +22,10 @@ func _ready() -> void:
 	_make("pickup",  "square", 880.0,  1320.0, 0.12, 0.3)
 	_make("dash",    "noise",  0.0,    0.0,   0.12, 0.18)
 	_make("upgrade", "arp",    523.0,  0.0,   0.36, 0.3)
+	_make("levelup", "arp",    784.0,  0.0,   0.5,  0.32)
+	_make("combo",   "square", 660.0,  1760.0, 0.18, 0.28)
+	_make("crit",    "square", 1900.0, 500.0, 0.09, 0.3)
+	_make("beat",    "saw",    70.0,   45.0,  0.16, 0.5)
 	for i in 10:
 		var p := AudioStreamPlayer.new()
 		p.volume_db = -6.0

@@ -72,7 +72,9 @@ The PDFs are generated from `docs/src/*.html`; see *Rebuild the PDFs* below.
 - PC: mouse aim + reticle, Q/E or wheel to switch; phones: twin-stick (left move, right drag to aim, auto-aim when idle)
 - Co-op over the relay (👥 Co-op): host-authoritative monsters streamed at 10 Hz, batched monster shots simulated on every client, guests report hits; per-player coins/weapons/perks; ghosts revive next round
 - Day/night cycle with hand torch, glowing lava and light shafts (night: faster spawns, +50% coins); power-up drops (rage, shield, magnet, bomb); radar
-- Sprites: `tools/make_mobs.py`; test flags `--surv-round=N --surv-bot --surv-god --surv-boss-now`
+- Run flow: kills fill an XP bar and every level is a perk picked on the spot; quick kills chain into combos (more score, bonus coins); from round 2 most rounds have an event (swarm, elite guard, gold rush, air raid, siege, blood moon); after a boss: perk, then loadout (Armory one button away), then a build phase
+- Hand-drawn HUD (`survival/hud.gd`: XP strip, wave progress, weapon slots with icons, buffs, combo) and effects (`survival/fx.gd`: glowing shots with trails, blasts with sparks and scorch marks, death pops, fireflies, pollen, lava embers); island props and a trader's camp with a fire
+- Sprites: `tools/make_mobs.py`, `tools/make_survival_art.py`; test flags `--surv-round=N --surv-bot --surv-god --surv-boss-now`
 
 **Multiplayer** (details in the PDF)
 - Room codes and invite links (`?room=CODE` joins directly), up to 10 players, coloured name tags, chat bubbles, live scoreboard; everyone keeps their chosen character

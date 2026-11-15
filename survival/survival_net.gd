@@ -187,7 +187,7 @@ func _send_snapshot() -> void:
 
 func send_state() -> void:
 	send({"t": "st", "s": game.state, "r": game.round_no, "ts": game.to_spawn + game.portals_open,
-		"sc": game.score, "k": game.kills, "d": snappedf(game._day_t, 0.1),
+		"sc": game.score, "k": game.kills, "d": snappedf(game._day_t, 0.1), "ev": game.round_event, "wt": game.wave_total,
 		"b": game.boss.net_id if game.boss and is_instance_valid(game.boss) else 0})
 
 
@@ -299,7 +299,7 @@ func _from_host(t: String, d: Dictionary) -> void:
 		"hl":
 			game.telegraph_line(Vector2(float(d.x), float(d.y)), Vector2(float(d.dx), float(d.dy)), float(d.ln), float(d.tm), false)
 		"bn":
-			game.banner(str(d.get("tx", "")), Color.html(str(d.get("c", "ffd166"))), false)
+			game.banner(str(d.get("tx", "")), Color.html(str(d.get("c", "ffd166"))), false, str(d.get("sb", "")))
 		"st":
 			game.apply_state(d)
 		"over":

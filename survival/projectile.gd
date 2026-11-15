@@ -18,13 +18,26 @@ var kind := "bolt"         # player shots: bolt | pellet | fire | spear | moon |
 var boom := 0.0            # fireballs: explosion radius
 var returning := false     # boomerang on its way back
 var t := 0.0
+var _trail: PackedVector2Array = []   # recent positions (arena space), newest last
+
+
+# A soft light around the shot (bright at night, feeds the bloom).
+func light_up() -> void:
+	if not Screen.low() or hostile:
+		add_child(SurvivalFx.glow(Color(color, 0.55), maxf(r, 3.0) * (7.0 if hostile else 9.0)))
 
 
 func _process(_delta: float) -> void:
+	_trail.append(position)
+	if _trail.size() > 6:
+		_trail.remove_at(0)
 	queue_redraw()
 
 
 func _draw() -> void:
+	for i in _trail.size() - 1:   # fading streak behind the shot
+		var k := float(i + 1) / _trail.size()
+		draw_line(_trail[i] - position, _trail[i + 1] - position, Color(color, 0.35 * k), maxf(r * 0.9 * k, 0.6))
 	if hostile:
 		draw_circle(Vector2.ZERO, r + 1.0, Color(0.1, 0.05, 0.1, 0.9))
 		draw_circle(Vector2.ZERO, r, color)

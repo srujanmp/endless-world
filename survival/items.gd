@@ -17,7 +17,7 @@ const ITEMS := {
 const ORDER := ["potion_heal", "potion_big", "potion_speed", "potion_power", "potion_shield", "grenade", "frost", "flare", "repair"]
 const SLOT_KEYS := [KEY_Z, KEY_X, KEY_C, KEY_V, KEY_F, KEY_G]   # hotbar slots, left to right
 const SLOT_NAMES := ["Z", "X", "C", "V", "F", "G"]
-const INFLATION := 0.12   # every price goes up 12% per round
+const INFLATION := 0.06   # every price goes up 6% per round
 
 # Pick 1 of 3 before every round. guns: airdrop gun -> ammo, builds: free machines.
 const LOADOUTS := [

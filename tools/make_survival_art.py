@@ -574,6 +574,282 @@ def _(d, f):
     d.line((3, 3, 12, 12), fill=(150, 100, 60), width=2); d.rectangle((1, 1, 5, 5), fill=(110, 116, 130))
 
 
+# ===================================================================== weapon icons (HUD, armory)
+@art('wpn_bolt', 16, 1)
+def _(d, f):
+    d.polygon([(8, 1), (10, 6), (14, 8), (10, 10), (8, 14), (6, 10), (2, 8), (6, 6)], fill=(90, 220, 255))
+    d.polygon([(8, 4), (9, 7), (12, 8), (9, 9), (8, 12), (7, 9), (4, 8), (7, 7)], fill=(215, 250, 255))
+
+
+@art('wpn_scatter', 16, 1)
+def _(d, f):
+    d.line((2, 14, 8, 8), fill=(150, 100, 60), width=2); d.rectangle((7, 6, 9, 8), fill=(255, 215, 110))
+    for x, y in ((12, 2), (14, 6), (10, 1), (13, 10), (11, 5)):
+        d.point((x, y), fill=(255, 235, 150)); d.point((x - 1, y), fill=(255, 190, 80))
+
+
+@art('wpn_flame', 16, 1)
+def _(d, f):
+    d.line((2, 14, 8, 8), fill=(120, 80, 50), width=2)
+    d.polygon([(10, 1), (14, 6), (13, 10), (9, 11), (6, 8), (8, 6), (8, 3)], fill=(255, 120, 30))
+    d.polygon([(10, 5), (12, 7), (11, 9), (9, 9), (8, 8)], fill=(255, 225, 110))
+
+
+@art('wpn_spear', 16, 1)
+def _(d, f):
+    d.line((2, 14, 10, 6), fill=(190, 160, 110), width=2)
+    d.polygon([(14, 1), (13, 7), (11, 5), (9, 3)], fill=(255, 240, 150)); d.point((12, 3), fill=(255, 255, 255))
+    d.point([(3, 12), (5, 10)], fill=(230, 80, 80))
+
+
+@art('wpn_moon', 16, 1)
+def _(d, f):
+    d.ellipse((1, 1, 14, 14), fill=(200, 215, 255)); d.ellipse((2, 2, 8, 8), fill=(235, 242, 255))
+    d.ellipse((6, 0, 16, 10), fill=(0, 0, 0, 0))
+
+
+@art('wpn_storm', 16, 1)
+def _(d, f):
+    d.polygon([(10, 1), (3, 8), (7, 8), (5, 14), (13, 6), (9, 6), (12, 1)], fill=(150, 200, 255))
+    d.line((10, 2, 6, 7), fill=(240, 250, 255)); d.line((8, 8, 7, 12), fill=(240, 250, 255))
+
+
+@art('wpn_minigun', 16, 1)
+def _(d, f):
+    d.rectangle((1, 5, 10, 6), fill=(150, 156, 172)); d.rectangle((1, 8, 10, 9), fill=(110, 116, 132))
+    d.rectangle((2, 7, 10, 7), fill=(200, 206, 220)); d.rectangle((9, 4, 14, 10), fill=(80, 86, 104))
+    d.rectangle((11, 11, 13, 14), fill=(120, 84, 56)); d.point([(11, 6), (13, 8)], fill=(255, 220, 110))
+
+
+@art('wpn_rocket', 16, 1)
+def _(d, f):
+    d.polygon([(4, 12), (10, 4), (13, 7), (7, 13)], fill=(190, 196, 210))
+    d.polygon([(10, 4), (14, 2), (13, 7)], fill=(235, 70, 60))
+    d.polygon([(4, 12), (2, 10), (5, 10)], fill=(120, 126, 144)); d.polygon([(7, 13), (7, 15), (9, 12)], fill=(120, 126, 144))
+    d.polygon([(4, 12), (7, 13), (2, 15)], fill=(255, 170, 50)); d.point((3, 14), fill=(255, 240, 150))
+    d.point((9, 8), fill=(110, 200, 255))
+
+
+@art('wpn_railgun', 16, 1)
+def _(d, f):
+    d.rectangle((1, 6, 11, 7), fill=(90, 230, 210)); d.rectangle((1, 9, 11, 10), fill=(60, 170, 160))
+    d.rectangle((2, 8, 10, 8), fill=(230, 255, 250)); d.rectangle((10, 5, 14, 11), fill=(60, 70, 90))
+    d.rectangle((12, 12, 13, 14), fill=(60, 70, 90)); d.point([(11, 7), (13, 9)], fill=(140, 255, 235))
+
+
+@art('wpn_laser', 16, 1)
+def _(d, f):
+    d.rectangle((5, 6, 13, 9), fill=(235, 90, 150)); d.rectangle((5, 6, 13, 6), fill=(255, 160, 200))
+    d.rectangle((11, 10, 13, 13), fill=(120, 60, 90)); d.rectangle((7, 4, 9, 5), fill=(120, 60, 90))
+    d.line((1, 7, 4, 7), fill=(255, 235, 245)); d.point([(1, 8), (3, 8)], fill=(255, 120, 180))
+
+
+# ===================================================================== perk + HUD icons
+@art('perk_dmg', 16, 1)
+def _(d, f):
+    d.polygon([(12, 1), (14, 2), (13, 4), (6, 11), (4, 9)], fill=(215, 222, 235)); d.line((12, 2, 5, 9), fill=(255, 255, 255))
+    d.line((3, 8, 7, 12), fill=(255, 200, 70), width=2); d.line((2, 13, 4, 11), fill=(140, 90, 50), width=2)
+
+
+@art('perk_rate', 16, 1)
+def _(d, f):
+    for i, c in enumerate(((255, 150, 60), (255, 200, 80), (255, 240, 150))):
+        x = 2 + i * 4
+        d.line((x, 3, x + 4, 8), fill=c, width=2); d.line((x + 4, 8, x, 13), fill=c, width=2)
+
+
+@art('perk_multi', 16, 1)
+def _(d, f):
+    for cx, cy in ((8, 3), (3, 9), (13, 9)):
+        d.polygon([(cx, cy - 2), (cx + 2, cy), (cx, cy + 3), (cx - 2, cy)], fill=(90, 220, 255)); d.point((cx, cy), fill=(230, 252, 255))
+    d.point([(8, 12), (8, 14)], fill=(255, 220, 110)); d.point([(6, 13), (10, 13)], fill=(255, 220, 110))
+
+
+@art('perk_pierce', 16, 1)
+def _(d, f):
+    d.ellipse((5, 3, 11, 13), fill=(200, 80, 90)); d.ellipse((7, 5, 9, 11), fill=(0, 0, 0, 0))
+    d.line((1, 8, 13, 8), fill=(255, 240, 150), width=1); d.polygon([(14, 8), (11, 5), (11, 11)], fill=(255, 240, 150))
+
+
+@art('perk_speed', 16, 1)
+def _(d, f):
+    d.polygon([(5, 3), (9, 3), (9, 9), (14, 11), (14, 13), (5, 13)], fill=(150, 100, 60)); d.rectangle((5, 13, 14, 13), fill=(90, 60, 40))
+    d.line((6, 5, 8, 5), fill=(200, 150, 100))
+    d.polygon([(4, 5), (1, 3), (2, 6), (1, 8), (4, 8)], fill=(235, 245, 255))
+
+
+@art('perk_dash', 16, 1)
+def _(d, f):
+    d.ellipse((9, 5, 14, 10), fill=(110, 230, 255)); d.point((11, 7), fill=(240, 255, 255))
+    d.line((1, 5, 7, 5), fill=(110, 230, 255)); d.line((3, 8, 8, 8), fill=(180, 240, 255)); d.line((1, 11, 7, 11), fill=(110, 230, 255))
+
+
+@art('perk_big', 16, 1)
+def _(d, f):
+    d.ellipse((2, 2, 13, 13), fill=(255, 150, 60)); d.ellipse((4, 4, 11, 11), fill=(255, 205, 100)); d.ellipse((5, 4, 7, 6), fill=(255, 250, 220))
+
+
+@art('perk_heal', 16, 1)
+def _(d, f):
+    d.polygon([(8, 14), (2, 8), (2, 4), (4, 2), (6, 2), (8, 4), (10, 2), (12, 2), (14, 4), (14, 8)], fill=(235, 60, 80))
+    d.rectangle((7, 5, 8, 10), fill=(255, 255, 255)); d.rectangle((5, 7, 10, 8), fill=(255, 255, 255))
+
+
+@art('perk_fang', 16, 1)
+def _(d, f):
+    d.polygon([(3, 2), (7, 2), (6, 9), (5, 11)], fill=(245, 245, 235)); d.polygon([(9, 2), (13, 2), (11, 11), (10, 9)], fill=(245, 245, 235))
+    d.polygon([(8, 10), (10, 13), (8, 15), (6, 13)], fill=(220, 40, 60)); d.point((7, 13), fill=(255, 150, 160))
+
+
+@art('perk_crit', 16, 1)
+def _(d, f):
+    d.polygon([(8, 1), (10, 6), (15, 6), (11, 9), (13, 14), (8, 11), (3, 14), (5, 9), (1, 6), (6, 6)], fill=(255, 200, 60))
+    d.polygon([(8, 4), (9, 7), (11, 8), (8, 9), (6, 8), (7, 7)], fill=(255, 250, 200))
+
+
+@art('perk_magnet', 16, 1)
+def _(d, f):
+    d.ellipse((2, 4, 13, 15), fill=(225, 60, 60)); d.ellipse((5, 7, 10, 12), fill=(0, 0, 0, 0)); d.rectangle((0, 0, 15, 5), fill=(0, 0, 0, 0))
+    d.rectangle((2, 3, 4, 9), fill=(225, 60, 60)); d.rectangle((11, 3, 13, 9), fill=(225, 60, 60))
+    d.rectangle((2, 2, 4, 4), fill=(225, 230, 240)); d.rectangle((11, 2, 13, 4), fill=(225, 230, 240))
+    d.point([(7, 1), (8, 3)], fill=(255, 220, 110))
+
+
+@art('perk_heart', 16, 1)
+def _(d, f):
+    d.polygon([(8, 14), (2, 8), (2, 4), (4, 2), (6, 2), (8, 4), (10, 2), (12, 2), (14, 4), (14, 8)], fill=(255, 200, 70))
+    d.polygon([(8, 12), (4, 8), (4, 5), (5, 4), (8, 6), (11, 4), (12, 5), (12, 8)], fill=(235, 60, 80)); d.point((5, 5), fill=(255, 190, 200))
+
+
+@art('ico_coin', 16, 1)
+def _(d, f):
+    d.ellipse((2, 2, 13, 13), fill=(255, 200, 50)); d.ellipse((4, 4, 11, 11), fill=(230, 160, 30))
+    d.rectangle((7, 5, 8, 10), fill=(255, 235, 140)); d.point([(4, 4), (5, 3)], fill=(255, 250, 210))
+
+
+@art('ico_skull', 16, 1)
+def _(d, f):
+    d.ellipse((2, 1, 13, 11), fill=(235, 235, 225)); d.rectangle((5, 10, 10, 13), fill=(235, 235, 225))
+    d.rectangle((4, 6, 6, 8), fill=K); d.rectangle((9, 6, 11, 8), fill=K); d.point([(7, 10), (8, 10)], fill=K)
+    d.point([(6, 12), (8, 12), (10, 12)], fill=(150, 150, 150))
+
+
+@art('ico_star', 16, 1)
+def _(d, f):
+    d.polygon([(8, 1), (10, 6), (15, 6), (11, 9), (13, 14), (8, 11), (3, 14), (5, 9), (1, 6), (6, 6)], fill=(120, 220, 255))
+    d.polygon([(8, 4), (9, 7), (11, 8), (8, 9), (6, 8), (7, 7)], fill=(235, 252, 255))
+
+
+# ===================================================================== island props
+@art('prop_rock1', 16, 1)
+def _(d, f):
+    d.polygon([(2, 14), (1, 9), (4, 5), (9, 4), (13, 7), (14, 14)], fill=(128, 132, 146))
+    d.polygon([(4, 6), (9, 5), (11, 8), (5, 9)], fill=(168, 172, 186)); d.polygon([(9, 10), (13, 9), (14, 14), (8, 14)], fill=(98, 102, 118))
+    d.point([(3, 9), (4, 8), (2, 11)], fill=(96, 150, 80))
+
+
+@art('prop_rock2', 16, 1)
+def _(d, f):
+    d.ellipse((1, 9, 8, 14), fill=(128, 132, 146)); d.ellipse((2, 9, 5, 11), fill=(168, 172, 186))
+    d.ellipse((8, 7, 14, 13), fill=(112, 116, 132)); d.ellipse((9, 8, 12, 10), fill=(156, 160, 176))
+
+
+@art('prop_bush', 16, 1)
+def _(d, f):
+    d.ellipse((1, 6, 9, 14), fill=(52, 120, 62)); d.ellipse((6, 4, 14, 14), fill=(62, 138, 70)); d.ellipse((4, 3, 10, 9), fill=(78, 160, 84))
+    d.point([(6, 5), (10, 7), (4, 9)], fill=(120, 196, 110)); d.point([(8, 10), (12, 11), (3, 12)], fill=(230, 70, 90))
+
+
+@art('prop_stump', 16, 1)
+def _(d, f):
+    d.rectangle((4, 8, 11, 14), fill=(112, 76, 50)); d.ellipse((3, 5, 12, 10), fill=(196, 160, 112)); d.ellipse((5, 6, 10, 9), fill=(170, 130, 88))
+    d.point((7, 7), fill=(120, 84, 56)); d.line((2, 14, 4, 13), fill=(112, 76, 50)); d.line((11, 13, 13, 14), fill=(112, 76, 50))
+    d.point([(5, 11), (9, 12)], fill=(84, 56, 38))
+
+
+@art('prop_grass', 16, 1)
+def _(d, f):
+    for x, h, c in ((3, 6, (70, 150, 74)), (5, 9, (92, 176, 88)), (7, 7, (70, 150, 74)), (9, 10, (104, 190, 96)), (11, 6, (70, 150, 74)), (12, 8, (92, 176, 88))):
+        d.line((x, 14, x + (1 if x % 2 else -1), 14 - h), fill=c)
+
+
+@art('prop_bones', 16, 1)
+def _(d, f):
+    d.ellipse((2, 6, 9, 12), fill=(232, 228, 212)); d.rectangle((4, 11, 7, 13), fill=(232, 228, 212))
+    d.point([(4, 9), (7, 9)], fill=K); d.line((9, 13, 14, 9), fill=(214, 208, 190)); d.point([(14, 8), (15, 10), (9, 14), (8, 12)], fill=(232, 228, 212))
+
+
+@art('prop_mushroom', 16, 1)
+def _(d, f):
+    d.rectangle((5, 9, 6, 13), fill=(236, 226, 204)); d.pieslice((1, 4, 10, 14), 180, 360, fill=(214, 60, 60)); d.point([(3, 7), (6, 6), (8, 8)], fill=(255, 240, 230))
+    d.rectangle((11, 11, 12, 14), fill=(236, 226, 204)); d.pieslice((8, 8, 15, 15), 180, 360, fill=(230, 110, 60)); d.point((12, 10), fill=(255, 240, 230))
+
+
+@art('prop_crystal', 16, 1)
+def _(d, f):
+    d.polygon([(7, 1), (10, 5), (9, 14), (5, 14), (4, 5)], fill=(90, 210, 240)); d.polygon([(7, 1), (7, 14), (5, 14), (4, 5)], fill=(160, 240, 255))
+    d.polygon([(12, 6), (14, 9), (13, 14), (10, 14), (10, 9)], fill=(70, 170, 220)); d.polygon([(2, 8), (4, 10), (4, 14), (1, 14), (1, 10)], fill=(120, 220, 245))
+    d.point((6, 4), fill=(255, 255, 255))
+
+
+@art('prop_pillar', 32, 1)
+def _(d, f):
+    stone, light, dark = (150, 152, 164), (188, 190, 200), (108, 110, 126)
+    d.rectangle((9, 26, 22, 30), fill=dark); d.rectangle((10, 24, 21, 26), fill=stone)
+    d.rectangle((12, 8, 19, 24), fill=stone); d.rectangle((12, 8, 14, 24), fill=light); d.rectangle((18, 8, 19, 24), fill=dark)
+    d.polygon([(10, 8), (21, 8), (21, 5), (18, 3), (15, 5), (12, 2), (10, 4)], fill=light)       # broken top
+    d.line((16, 10, 15, 14), fill=dark); d.line((15, 14, 17, 18), fill=dark)
+    d.point([(12, 20), (13, 21), (12, 22), (11, 25), (20, 25)], fill=(96, 150, 80))
+    d.rectangle((23, 28, 26, 30), fill=stone); d.point((24, 28), fill=light)                   # fallen chunk
+
+
+@art('prop_ruin', 32, 1)
+def _(d, f):
+    stone, light, dark = (140, 138, 150), (178, 176, 188), (100, 98, 116)
+    d.polygon([(2, 30), (2, 16), (6, 13), (9, 17), (13, 11), (17, 14), (17, 30)], fill=stone)
+    d.polygon([(20, 30), (20, 22), (24, 19), (29, 23), (29, 30)], fill=stone)
+    for y in (18, 22, 26):
+        d.line((2, y, 17, y), fill=dark)
+    for x, y in ((6, 18), (11, 18), (4, 22), (9, 22), (14, 22), (7, 26), (12, 26)):
+        d.line((x, y, x, y + 4), fill=dark)
+    d.line((20, 25, 29, 25), fill=dark); d.line((24, 25, 24, 30), fill=dark)
+    d.line((3, 16, 6, 14), fill=light); d.line((10, 16, 13, 12), fill=light); d.line((21, 22, 24, 20), fill=light)
+    d.point([(3, 29), (4, 28), (16, 29), (21, 29), (28, 28), (8, 20)], fill=(96, 150, 80))
+
+
+@art('prop_tent', 32, 1)
+def _(d, f):
+    a, b, dark = (126, 78, 160), (236, 196, 90), (60, 40, 84)
+    d.polygon([(16, 3), (30, 28), (2, 28)], fill=a)
+    d.polygon([(16, 3), (20, 28), (12, 28)], fill=b); d.polygon([(16, 3), (9, 28), (5, 28)], fill=b); d.polygon([(16, 3), (27, 28), (23, 28)], fill=b)
+    d.polygon([(16, 12), (21, 28), (11, 28)], fill=dark)                                       # doorway
+    d.line((16, 0, 16, 3), fill=(120, 84, 56)); d.polygon([(16, 0), (21, 1), (16, 2)], fill=(220, 60, 70))
+    d.rectangle((2, 28, 30, 29), fill=(90, 60, 110))
+
+
+@art('prop_campfire', 16, 2)
+def _(d, f):
+    d.line((3, 14, 12, 11), fill=(112, 76, 50), width=2); d.line((3, 11, 12, 14), fill=(132, 92, 60), width=2)
+    for x in (2, 13):
+        d.point((x, 13), fill=(120, 124, 138))
+    if f == 0:
+        d.polygon([(7, 2), (11, 8), (10, 12), (5, 12), (4, 8)], fill=(255, 120, 30)); d.polygon([(7, 6), (9, 9), (8, 12), (6, 12), (6, 9)], fill=(255, 230, 110))
+    else:
+        d.polygon([(9, 3), (11, 9), (10, 12), (5, 12), (4, 7), (6, 5)], fill=(255, 140, 40)); d.polygon([(8, 7), (9, 10), (8, 12), (6, 12), (6, 9)], fill=(255, 240, 140))
+        d.point((5, 2), fill=(255, 200, 90))
+
+
+def glow(size=64):
+    """Soft round glow (white, alpha falls off): shots, blasts and fireflies light up with it."""
+    im = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    px = im.load(); c = (size - 1) / 2.0
+    for y in range(size):
+        for x in range(size):
+            k = max(0.0, 1.0 - (((x - c) ** 2 + (y - c) ** 2) ** 0.5) / c)
+            px[x, y] = (255, 255, 255, int(255 * k * k))
+    return im
+
+
 def build():
     out = {}
     for name, (fn, size, frames) in ART.items():
@@ -583,6 +859,7 @@ def build():
 
 if __name__ == '__main__':
     imgs = build()
+    glow().save(os.path.join(OUT, 'fx_glow.png'))
     for name, im in imgs.items():
         im.save(os.path.join(OUT, f'{name}.png'))
     print(len(imgs), 'images ->', OUT)

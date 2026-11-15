@@ -70,6 +70,7 @@ var spr: Sprite2D
 var _px := 1.0                  # sprite pixels -> world: 16 px art and 24 px art end up the same size
 var tag: Label
 var t := randf() * 10.0
+var _born := 0.0                # value of t when it appeared (pop-in)
 var kb := Vector2.ZERO
 var flash := 0.0
 var state := ""
@@ -125,6 +126,7 @@ func setup(g: Node, tname: String, muts: Array[String], round_no: int, boss_def:
 	for m in muts:
 		_mutate(m)
 	max_hp = hp
+	_born = t
 
 	var sh := Sprite2D.new()
 	sh.texture = SHADOW
@@ -209,7 +211,9 @@ func hit(amount: float, dir: Vector2, crit := false, from_net := false) -> void:
 	if type_name == "coin_golem" and randf() < 0.25:   # a walking piggy bank
 		game.drop_coins(position, 1)
 	flash = 0.09
-	game.sfx.play("hit", 0.2)
+	game.sfx.play("crit" if crit else "hit", 0.2)
+	if crit or not Screen.low():
+		SurvivalFx.sparks(game, center(), Color(1.0, 0.6, 0.25) if crit else Color(1.0, 0.95, 0.7), 8 if crit else 4, 90.0, dir)
 	if not is_boss and not type_name in ["golem", "brute", "coin_golem", "knight"]:
 		kb += dir * (130.0 if crit else 90.0)
 	if not from_net:   # a guest's hit already showed its number on their screen
@@ -428,6 +432,7 @@ func tick(delta: float, ppos: Vector2) -> void:
 	if enraged:
 		c = c * Color(1.25, 0.8, 0.8)
 	spr.self_modulate = Color(c, a)
+	_squash(move_dir != Vector2.ZERO)
 	if state == "hop" or state == "slam":
 		spr.position.y = -sin(clampf(1.0 - state_t / (0.9 if state == "slam" else 0.35), 0.0, 1.0) * PI) * (40.0 if state == "slam" else 6.0)
 	elif is_flyer():
@@ -456,6 +461,7 @@ func puppet_tick(delta: float) -> void:
 	if enraged:
 		c = c * Color(1.25, 0.8, 0.8)
 	spr.self_modulate = Color(c, 0.3 if phased else 1.0)
+	_squash(true)
 	if is_flyer():
 		spr.position.y = -4.0 + sin(t * 5.0) * 1.5
 	z_index = int(position.y * 2.0 / 4.0)
@@ -463,8 +469,23 @@ func puppet_tick(delta: float) -> void:
 		tag.visible = position.distance_to(game.ppos()) < 140.0
 
 
-# Small health bar once hurt (tough monsters take a while to bring down).
+# Grows in from nothing, bounces as it walks, squashes when hit.
+func _squash(moving: bool) -> void:
+	var k := scale_k * _px * minf(1.0, (t - _born) / 0.22)
+	var a := 0.14 if flash > 0.0 else (sin(t * 11.0) * 0.05 if moving else sin(t * 3.0) * 0.02)
+	spr.scale = Vector2(k * (1.0 + a), k * (1.0 - a))
+
+
+# Aura under mutated monsters and bosses, and a small health bar once hurt
+# (tough monsters take a while to bring down).
 func _draw() -> void:
+	if is_boss or not mutations.is_empty():
+		var col: Color = boss.shot if is_boss else MUT_COLOR[mutations[0]]
+		var rr := radius * (1.5 + 0.12 * sin(t * 4.0))
+		draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.5))
+		draw_circle(Vector2.ZERO, rr, Color(col, 0.16))
+		draw_arc(Vector2.ZERO, rr, t * 2.0, t * 2.0 + 4.4, 24, Color(col, 0.7), 1.5)
+		draw_set_transform(Vector2.ZERO)
 	if is_boss or hp >= max_hp or hp <= 0.0:
 		return
 	var w := 8.0 + 3.0 * scale_k

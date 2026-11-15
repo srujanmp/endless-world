@@ -334,6 +334,18 @@ class Runner extends Node:
 		g._dash()
 		g._cycle_weapon(1)
 		await secs(1.0)
+		step("survival: xp, combo, round events")
+		var lvl0: int = g.level
+		g.add_xp(g.xp_need() + 1.0)
+		await secs(0.3)
+		check(g.level > lvl0, "enough xp gives a level")
+		for k in 10:
+			g._combo_kill(g.player.position)
+		check(g.combo >= 10 and g.best_combo >= 10, "kills chain into a combo")
+		for ev in SurvivalGame.EVENTS:
+			g.round_event = ev
+			check(not g._spawn_pool().is_empty(), "event %s has monsters to send" % ev)
+		g.round_event = ""
 		step("survival: build every machine, use every item, airdrop, allies")
 		SurvivalArsenal.add_coins(3000)
 		for mid in SurvivalMachine.ORDER:

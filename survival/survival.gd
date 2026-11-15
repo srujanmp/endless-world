@@ -4,8 +4,13 @@ class_name SurvivalGame
 # Survival mode: a separate arcade game reached from the Stats page (🐛 button).
 # A random island (beaches, ponds, lava). Waves of mobs (21 types, random mutations)
 # pour out of portals; clear them and a boss arrives (12 named bosses, then endless
-# generated ones). Beat it, pick a perk, spend coins in the Armory on new weapons and
-# weapon levels (saved between runs), pick a loadout, then a short build phase.
+# generated ones). Beat it, pick a perk and a loadout (the Armory, with weapons and
+# weapon levels saved between runs, is one button away), then a short build phase.
+# Kills fill an XP bar: every level is another perk, picked on the spot. Quick kills
+# chain into a combo (more score, bonus coins), and from round 2 most rounds have an
+# event (swarm, elite guard, gold rush, air raid, siege, blood moon).
+# A run opens up step by step (round 2: the trader, round 3: building and airdrops),
+# and every run earns rank XP: ranks are permanent bonuses (RANKS), so no run is wasted.
 # Also: machines you build and place (machine.gd), potions and bombs on a hotbar
 # (items.gd), airdrop crates with guns, paratroopers, a trader and a medic (ally.gd),
 # and a dynamic threat level that makes monsters tougher the better you play.
@@ -49,6 +54,29 @@ const UPGRADES := [
 	["Big shots", "Bigger shots,\n+20% damage"], ["Second wind", "Heal 3 hearts"], ["Vampire fang", "Heal 1 heart\nevery 20 kills"],
 	["Lucky star", "+10% critical hits\n(double damage)"], ["Coin magnet", "Pick up coins\nfrom further away"], ["Iron heart", "+1 max heart"],
 ]
+# Ranks: [name, rank XP needed, permanent bonus]. Rank XP is earned by every run and kept.
+const RANKS := [
+	["Rookie", 0, ""],
+	["Scout", 100, "Start every run with a Health Potion"],
+	["Hunter", 300, "+10% damage"],
+	["Ranger", 700, "+1 max heart"],
+	["Veteran", 1500, "Dash recharges 20% faster"],
+	["Champion", 3000, "Start every run with an airdrop gun"],
+	["Warlord", 6000, "+15% coins from monsters"],
+	["Legend", 12000, "+1 max heart and +10% damage"],
+]
+const TRADER_ROUND := 2               # the trader sets up camp
+const BUILD_ROUND := 3                # build mode and airdrops open up
+const PERK_ICONS := ["dmg", "rate", "multi", "pierce", "speed", "dash", "big", "heal", "fang", "crit", "magnet", "heart"]
+# Round events (from round 2): [name, what it does, colour]
+const EVENTS := {
+	"swarm": ["Swarm", "Twice the monsters, half as tough", Color(0.6, 1.0, 0.5)],
+	"elite": ["Elite guard", "Fewer monsters, every one mutated", Color(1.0, 0.6, 0.9)],
+	"gold": ["Gold rush", "Thieves everywhere, double coins", Color(1.0, 0.85, 0.3)],
+	"air": ["Air raid", "They come from the sky", Color(0.6, 0.85, 1.0)],
+	"siege": ["Siege", "They want your machines", Color(1.0, 0.6, 0.35)],
+	"moon": ["Blood moon", "Night falls early: more monsters, more coins", Color(1.0, 0.45, 0.5)],
+}
 
 var tilemap: TileMapLayer
 var player                              # the shared player.tscn hero (script vars: speed, last_dir, airborne)
@@ -77,8 +105,28 @@ var _aim_origin := Vector2.ZERO
 var _aim_vec := Vector2.ZERO
 var _aim_view: Control
 var _reticle: Node2D
-var _coin_lbl: Label
 var _arm_list: VBoxContainer
+# XP, combo, round event (this run only)
+var xp := 0.0
+var level := 1
+var _pending_perks := 0               # level-ups waiting for a perk pick
+var combo := 0
+var best_combo := 0
+var _combo_t := 0.0
+var round_event := ""                       # key of EVENTS, "" = a plain round
+var _last_event := ""
+var wave_total := 1                   # monsters in this round's waves (HUD progress bar)
+var _prep_max := 20.0
+var _run_t := 0.0
+var _beat_t := 0.0                    # low-health heartbeat
+var _banked := false                  # this run's rank XP has been paid out
+var _coin_k := 1.0                    # rank bonus on monster coins
+var auto_fire := bool(Global.stats.get("survival_autofire", false))   # R: shoot without holding the button
+var _muzzle: PointLight2D             # lights the player up when firing
+var _boss_light: PointLight2D
+var _lights: Array[PointLight2D] = [] # small pool for blast flashes
+var _light_i := 0
+var _hurt_fx := 0.0                   # post shader "hurt" pulse
 # power-ups dropped by monsters: [name, colour, seconds (0 = instant)]
 const POWERUPS := {
 	"rage": ["Rage: double fire rate", Color(1.0, 0.4, 0.3), 8.0],
@@ -101,6 +149,9 @@ var _day_t := 0.25 * DAY_LEN          # start in the morning
 var _night_mod: CanvasModulate
 var _torch: HandTorch
 var _lava_lights: Array[PointLight2D] = []
+var _camp_light: PointLight2D
+var _fireflies: CPUParticles2D
+var _pollen: CPUParticles2D
 var _post: ShaderMaterial
 var dark := 0.0                       # 0 noon … 1 midnight
 var _was_night := false
@@ -152,7 +203,6 @@ var _build_btn: Button
 var _build_bar: PanelContainer
 var _build_cards := {}                # machine id -> [button, price label]
 var _place_btn: Button
-var _threat_lbl: Label
 var _prep_lbl: Label
 var _trade_list: VBoxContainer
 var _trade_coins: Label
@@ -160,10 +210,8 @@ var touch: TouchControls
 
 var sfx: SurvivalSfx
 var _hurt_flash: ColorRect
-var _dash_fill: ColorRect
-var _weapon_lbl: Label
-var _round_lbl: Label
-var _score_lbl: Label
+var hud: SurvivalHud
+var _banner_sub: Label
 var _boss_panel: PanelContainer
 var _boss_name: Label
 var _boss_fill: ColorRect
@@ -190,16 +238,22 @@ func _ready() -> void:
 	hearts.current_hearts = 6
 	add_child(hearts)
 	hearts.player_died.connect(_on_died)
+	_apply_rank()
 	sfx = SurvivalSfx.new()
 	add_child(sfx)
 	weapons = SurvivalArsenal.owned()
+	for g in ammo:   # a rank bonus may have handed out a gun
+		weapons.append(g)
 	_build_hud()
 	if Net.in_survival():
 		seed(int(Net.round_data.get("seed", 1)) + 7)
 	_decorate_arena()
 	randomize()
 	_build_daynight()
-	trader = _spawn_ally("trader", clamp_arena(_island_center() + Vector2(56, 26)))
+	_muzzle = _light(Color.WHITE, 0.5)
+	remove_child(_muzzle)
+	_muzzle.position = Vector2(0, -8)
+	player.add_child(_muzzle)
 	var ghost := _Ghost.new()
 	ghost.game = self
 	ghost.z_index = 4080
@@ -238,6 +292,9 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Input.set_custom_mouse_cursor(null)   # give the rest of the game its normal cursor back
+	if not _bot:
+		Engine.time_scale = 1.0           # in case we leave during a slow-motion moment
+	_bank_run()
 	Global.stats["survival_kills"] = int(Global.stats.get("survival_kills", 0)) + kills
 	Global.stats["survival_bosses"] = int(Global.stats.get("survival_bosses", 0)) + bosses_killed
 	Global.save_game()                    # coins picked up are kept even if you quit
@@ -324,6 +381,7 @@ func _decorate_arena() -> void:
 			continue
 		var s := Sprite2D.new()
 		s.texture = load(flowers.pick_random())
+		s.material = _sway(1.2)
 		s.position = (Vector2(c) + Vector2(randf(), randf())) * TILE
 		s.offset = Vector2(0, -8)
 		s.scale = Vector2.ONE * randf_range(0.7, 1.0)
@@ -344,12 +402,123 @@ func _decorate_arena() -> void:
 		placed.append(at)
 		var t := Sprite2D.new()
 		t.texture = load(trees.pick_random())
+		t.material = _sway(3.0)
 		t.centered = false
 		t.offset = Vector2(-t.texture.get_width() / 2.0, -t.texture.get_height() + 10)
 		t.scale = Vector2(0.5, 0.5)
 		t.position = at
 		t.z_index = int(t.position.y / 2.0)
 		add_child(t)
+	# rocks, bushes, bones and old ruins scattered about (looks only: nothing blocks the way)
+	var small := ["rock1", "rock2", "bush", "bush", "stump", "grass", "grass", "grass", "bones", "mushroom", "crystal"]
+	for k in 90:
+		var c: Vector2i = walk_cells.pick_random()
+		var kind: String = small.pick_random()
+		var ground := tilemap.get_cell_atlas_coords(c)
+		if ground == LAVA or (ground == SAND and kind in ["bush", "grass", "mushroom", "stump"]):
+			continue
+		var pr := _prop(kind, (Vector2(c) + Vector2(randf(), randf())) * TILE, randf() < 0.5)
+		if kind in ["bush", "grass", "mushroom"]:
+			pr.material = _sway(1.0)
+		elif kind == "crystal" and _lava_lights.size() < 3 and not Screen.low():   # crystals glow at night
+			var cl := _light(Color(0.4, 0.9, 1.0), 0.32)
+			cl.position = pr.position + Vector2(0, -6)
+			_lava_lights.append(cl)
+	var big := 0
+	tries = 0
+	while big < 7 and tries < 200:
+		tries += 1
+		var c: Vector2i = walk_cells.pick_random()
+		var at := (Vector2(c) + Vector2(0.5, 0.5)) * TILE
+		if tilemap.get_cell_atlas_coords(c) not in [GRASS, DIRT] or at.distance_to(_island_center()) < 110.0 \
+				or placed.any(func(q): return q.distance_to(at) < 70.0):
+			continue
+		placed.append(at)
+		big += 1
+		_prop("pillar" if big % 2 == 0 else "ruin", at, randf() < 0.5)
+	# the trader's camp in the middle: tent and a fire that lights the night
+	var camp := clamp_arena(_island_center() + Vector2(64, 12))
+	_prop("tent", camp + Vector2(18, -6))
+	var fire_spr := _prop("campfire", camp + Vector2(-14, 14))
+	fire_spr.material = UNSHADED
+	fire_spr.hframes = 2
+	fire_spr.offset = Vector2(0, -8)
+	var tw := fire_spr.create_tween().set_loops()
+	tw.tween_callback(func(): fire_spr.frame = 1 - fire_spr.frame).set_delay(0.18)
+	_camp_light = PointLight2D.new()
+	_camp_light.texture = preload("res://assets/wildlife/light_soft.png")
+	_camp_light.color = Color(1.0, 0.62, 0.3)
+	_camp_light.texture_scale = 0.9
+	_camp_light.position = fire_spr.position + Vector2(0, -6)
+	_camp_light.range_z_min = -4096
+	_camp_light.range_z_max = 4096
+	_camp_light.energy = 0.0
+	add_child(_camp_light)
+
+
+# One decoration sprite standing on the ground at `at` (its feet).
+func _prop(kind: String, at: Vector2, flip := false) -> Sprite2D:
+	var s := Sprite2D.new()
+	s.texture = load("res://assets/survival/prop_%s.png" % kind)
+	s.offset = Vector2(0, -s.texture.get_height() * 0.5 + 2.0)
+	s.flip_h = flip
+	s.position = at
+	s.z_index = int(at.y / 2.0) - 1
+	add_child(s)
+	var sh := Sprite2D.new()   # soft shadow at its feet
+	sh.texture = preload("res://assets/wildlife/shadow_soft.png")
+	sh.scale = Vector2(0.7, 0.5) * s.texture.get_height() / 16.0
+	sh.position = Vector2(0, 1)
+	sh.show_behind_parent = true
+	s.add_child(sh)
+	return s
+
+
+var _sways := {}
+
+# Shared wind materials (a few phases, so plants do not all lean in step).
+func _sway(strength: float) -> ShaderMaterial:
+	var key := "%s/%d" % [strength, randi() % 4]
+	if not _sways.has(key):
+		var m := ShaderMaterial.new()
+		m.shader = preload("res://shaders/sway.gdshader")
+		m.set_shader_parameter("strength", strength)
+		m.set_shader_parameter("phase", randf() * TAU)
+		m.set_shader_parameter("speed", randf_range(1.2, 1.9))
+		_sways[key] = m
+	return _sways[key]
+
+
+# A soft point light on the island (energy 0 until someone turns it up).
+func _light(col: Color, tex_scale: float) -> PointLight2D:
+	var l := PointLight2D.new()
+	l.texture = preload("res://assets/wildlife/light_soft.png")
+	l.color = col
+	l.texture_scale = tex_scale
+	l.range_z_min = -4096
+	l.range_z_max = 4096
+	l.energy = 0.0
+	add_child(l)
+	return l
+
+
+# A short flash of light (blasts, portals, boss slams). Stronger at night.
+func flash_light(at: Vector2, col: Color, radius: float, secs := 0.4) -> void:
+	if Screen.low():
+		return
+	if _lights.size() < 6:
+		_lights.append(_light(col, 1.0))
+	var l := _lights[_light_i % _lights.size()]
+	_light_i += 1
+	l.position = at
+	l.color = col
+	l.texture_scale = clampf(radius / 55.0, 0.35, 2.2)
+	l.energy = lerpf(0.45, 1.5, dark)
+	if l.has_meta("tw"):
+		(l.get_meta("tw") as Tween).kill()
+	var tw := l.create_tween()
+	tw.tween_property(l, "energy", 0.0, secs)
+	l.set_meta("tw", tw)
 
 
 func _near_water(c: Vector2i, r: int) -> bool:
@@ -367,7 +536,7 @@ func _show_intro() -> void:
 	var v := PixelUI.page(layer, "💀 Survival", 640, func():
 		get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn"))
 	var best := int(Global.stats.get("survival_best_round", 0))
-	var intro := PixelUI.label("Clear each wave, then defeat the boss. Monsters drop coins: spend them in the Armory\n(kept between runs), on machines you build, and at the trader. Grab airdrops!", 24)
+	var intro := PixelUI.label("Clear the waves, beat the boss. Kills fill the XP bar (each level is a perk) and chain into combos.\nCoins buy weapons in the Armory (kept between runs), machines and the trader's wares.", 24)
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro.custom_minimum_size.x = minf(580.0, PixelUI.avail_width(60.0))
 	v.add_child(intro)
@@ -375,9 +544,9 @@ func _show_intro() -> void:
 	keys.columns = 2
 	keys.add_theme_constant_override("h_separation", 24)
 	v.add_child(keys)
-	var rows := [["Aim + shoot", "mouse (hold left button)  /  J"], ["Weapons", "Q / E, 1-6 or mouse wheel"],
+	var rows := [["Aim + shoot", "mouse (hold left, or R: auto-fire)  /  J"], ["Weapons", "Q / E, 1-6 or mouse wheel"],
 			["Dash", "right mouse  /  K"], ["Move", "WASD  ·  Shift sprint  ·  Space jump"],
-			["Build", "B, then click to place machines"], ["Items", "Z X C V F G (hotbar)"], ["Trader", "T next to the trader  ·  Esc pause"]]
+			["Build", "B, then click to place (from round 3)"], ["Items", "Z X C V F G (hotbar)"], ["Trader", "T next to the trader  ·  Esc pause"]]
 	if Screen.is_touch:
 		rows = [["Move", "left joystick (push far to sprint)"], ["Aim + shoot", "drag on the right side"],
 			["Auto-aim", "let go: fires at the nearest monster"], ["Weapons", "⇄ button"], ["Dash / jump", "DASH and ↑ buttons"],
@@ -385,8 +554,16 @@ func _show_intro() -> void:
 	for row in rows:
 		keys.add_child(PixelUI.label(row[0], 26, PixelUI.GOLD, false))
 		keys.add_child(PixelUI.label(row[1], 26, PixelUI.CREAM, false))
+	var r := rank()
+	var rank_txt := "Rank: %s" % RANKS[r][0]
+	if r + 1 < RANKS.size():
+		rank_txt += "  ·  %d/%d XP  ·  next: %s" % [rank_xp(), RANKS[r + 1][1], RANKS[r + 1][2]]
 	if best > 0:
-		v.add_child(PixelUI.label("Your best: round %d" % best, 24, PixelUI.MUTED))
+		rank_txt += "  ·  best: round %d" % best
+	var rank_lbl := PixelUI.label(rank_txt, 22, Color(0.5, 0.9, 1.0))
+	rank_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rank_lbl.custom_minimum_size.x = minf(580.0, PixelUI.avail_width(60.0))
+	v.add_child(rank_lbl)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	v.add_child(row)
@@ -544,6 +721,16 @@ func _build_daynight() -> void:
 		l.energy = 0.0
 		add_child(l)
 		_lava_lights.append(l)
+		if not Screen.low():
+			var em := SurvivalFx.embers()
+			em.position = l.position
+			add_child(em)
+	# life in the air: pollen by day, fireflies by night (they follow the player = the camera)
+	_pollen = SurvivalFx.motes(Color(1.0, 1.0, 0.85, 0.5), 16, false)
+	player.add_child(_pollen)
+	_fireflies = SurvivalFx.motes(Color(0.8, 1.0, 0.45), 26, true)
+	_fireflies.emitting = false
+	player.add_child(_fireflies)
 
 
 func _update_daynight(delta: float) -> void:
@@ -553,13 +740,20 @@ func _update_daynight(delta: float) -> void:
 	var day := smoothstep(4.5, 7.5, h) * (1.0 - smoothstep(17.5, 20.5, h))
 	dark = 1.0 - day
 	var dusk := clampf(1.0 - absf(h - 19.0) / 1.8, 0.0, 1.0) + clampf(1.0 - absf(h - 6.0) / 1.8, 0.0, 1.0)
-	var night := Color(0.3, 0.34, 0.58)
+	var night := Color(0.55, 0.3, 0.4) if round_event == "moon" else Color(0.3, 0.34, 0.58)
 	var c := night.lerp(Color.WHITE, day).lerp(Color(1.0, 0.75, 0.55), dusk * 0.45)
 	_night_mod.color = c
 	_torch.set_lit(dark > 0.4)
 	for l in _lava_lights:
 		l.energy = lerpf(0.15, 0.9, dark) * (0.9 + 0.1 * sin(_t * 2.0 + l.position.x))
+	_camp_light.energy = lerpf(0.1, 1.0, dark) * (0.85 + 0.15 * sin(_t * 9.0) * sin(_t * 5.3))
+	_fireflies.emitting = dark > 0.5
+	_pollen.emitting = dark < 0.5
+	_muzzle.energy = move_toward(_muzzle.energy, 0.0, delta * 7.0)
+	if _boss_light and is_instance_valid(_boss_light):
+		_boss_light.energy = lerpf(0.3, 1.1, dark) * (0.85 + 0.15 * sin(_t * 5.0))
 	if _post:
+		_post.set_shader_parameter("bloom", lerpf(0.15, 0.34, dark))   # lights bleed more in the dark
 		_post.set_shader_parameter("vignette", lerpf(0.42, 0.62, dark))
 		_post.set_shader_parameter("saturation", lerpf(1.12, 0.92, dark))
 		_post.set_shader_parameter("sun_rays", dusk * day * 0.9)
@@ -632,9 +826,23 @@ func _next_round() -> void:
 	state = "prep"
 	_revive()
 	local_ready = false
-	_prep_t = 2.0 if _bot or "--surv-boss-now" in OS.get_cmdline_user_args() else (12.0 if net else 20.0)
+	_prep_t = 2.0 if _bot or "--surv-boss-now" in OS.get_cmdline_user_args() else (12.0 if net else 18.0)
+	if round_no < BUILD_ROUND and _prep_t > 5.0:
+		_prep_t = 5.0   # nothing to build yet: straight back to the fight
+	_prep_max = _prep_t
+	round_event = ""
+	if round_no >= 2 and randf() < 0.7:
+		var opts: Array = EVENTS.keys()
+		opts.erase(_last_event)
+		if machines.is_empty():
+			opts.erase("siege")
+		round_event = opts.pick_random()
+		_last_event = round_event
 	_on_round_local()
-	banner("Round %d: build and get ready!" % round_no, PixelUI.GOLD)
+	if round_event != "":
+		banner("Round %d: %s" % [round_no, EVENTS[round_event][0]], EVENTS[round_event][2], true, str(EVENTS[round_event][1]))
+	else:
+		banner("Round %d" % round_no, PixelUI.GOLD, true, "Build and get ready!")
 	_update_hud()
 	if net:
 		net.send_state()
@@ -643,15 +851,36 @@ func _next_round() -> void:
 func _begin_waves() -> void:
 	state = "waves"
 	to_spawn = 0 if "--surv-boss-now" in OS.get_cmdline_user_args() else mini(int((6 + 3 * round_no) * (0.8 + 0.2 * threat)), 60)
+	to_spawn = mini(int(to_spawn * {"swarm": 1.8, "elite": 0.6}.get(round_event, 1.0)), 80)
+	wave_total = maxi(to_spawn, 1)
+	if round_event == "moon":
+		_day_t = 0.86 * DAY_LEN       # straight to nightfall
 	_spawn_t = 1.2
 	_round_hurt = 0
 	_round_t = 0.0
 	_airdrop_t = randf_range(18.0, 28.0)
-	banner("Round %d" % round_no, PixelUI.GOLD)
+	banner("They're coming!", Color(1.0, 0.6, 0.45))
 	sfx.play("portal", 0.0)
 	_update_hud()
 	if net:
 		net.send_state()
+
+
+# Which monsters this round's portals may bring.
+func _spawn_pool() -> Array:
+	var pool: Array = SurvivalMob.ORDER.slice(0, mini(SurvivalMob.ORDER.size(), 2 + 2 * round_no))
+	match round_event:
+		"air":
+			pool = pool.filter(func(t): return t in SurvivalMob.FLYERS)
+			if pool.is_empty():
+				pool = ["bat"]
+		"gold":
+			pool += ["goblin", "goblin", "goblin"]
+			if round_no >= 4:
+				pool.append("coin_golem")
+		"siege":
+			pool = ["raider", "sapper", "boar", "brute"] if round_no >= 4 else ["raider", "sapper"]
+	return pool
 
 
 func _skip_prep() -> void:
@@ -662,6 +891,15 @@ func _skip_prep() -> void:
 # Every player (co-op guests too) when a round begins.
 func _on_round_local() -> void:
 	_deal = SurvivalItems.ORDER.pick_random()
+	if round_no > 1 and not down and hearts.current_hearts < hearts.max_hearts:   # a breather between rounds
+		hearts.heal(2)
+		banner_small("A moment to rest: +2 hearts")
+	if trader == null and round_no >= TRADER_ROUND:
+		trader = _spawn_ally("trader", clamp_arena(_island_center() + Vector2(56, 26)), round_no == TRADER_ROUND)
+		if round_no == TRADER_ROUND:
+			_unlocked("The trader has arrived", "Potions and bombs at the camp: tap TRADE" if Screen.is_touch else "Potions and bombs at the camp: stand close and press T")
+	if round_no == BUILD_ROUND:
+		_unlocked("Build mode unlocked", "Tap BUILD to place turrets, walls and traps. Airdrops incoming!" if Screen.is_touch else "Press B to place turrets, walls and traps. Airdrops incoming!")
 	if round_no % 3 == 0:
 		_spawn_ally("medic", near_player(30.0, 50.0), true)
 		banner_small("A medic parachutes in!")
@@ -700,14 +938,21 @@ func _spawn_boss() -> void:
 	state = "boss"
 	_boss_name.text = "💀 %s" % d.name
 	_boss_panel.visible = true
-	banner(d.name, Color(1.0, 0.5, 0.4))
+	banner(d.name, Color(1.0, 0.5, 0.4), true, "Boss of round %d" % round_no)
+	SurvivalFx.blast(self, boss.center(), 70.0, d.shot)
+	flash_light(boss.center(), d.shot, 120.0, 0.8)
+	if not Screen.low():
+		_boss_light = _light(d.shot, 1.1)
+		remove_child(_boss_light)
+		_boss_light.position = Vector2(0, -16)
+		boss.add_child(_boss_light)
 	sfx.play("boss", 0.0)
 	shake()
 
 
 func _random_mutations() -> Array[String]:
 	var out: Array[String] = []
-	var chance := minf((0.15 + 0.07 * round_no) * threat, 0.8)
+	var chance := 1.0 if round_event == "elite" else minf((0.15 + 0.07 * round_no) * threat, 0.8)
 	if randf() < chance:
 		out.append(SurvivalMob.MUTATIONS.pick_random())
 		if round_no >= 5 and randf() < chance * 0.4:
@@ -757,6 +1002,14 @@ func _process(delta: float) -> void:
 	if state == "intro" or state == "over":
 		return
 	_t += delta
+	_run_t += delta
+	_combo_t -= delta
+	if _combo_t <= 0.0:
+		combo = 0
+	_low_health(delta)
+	if _pending_perks > 0 and state in ["prep", "waves", "boss"] and not down:
+		_pending_perks -= 1
+		_level_up()
 	_invuln -= delta
 	_fire_t -= delta
 	_dash_t -= delta
@@ -785,10 +1038,11 @@ func _process(delta: float) -> void:
 	if state in ["waves", "boss"] and not down:
 		_round_t += delta
 		_calm_t += delta
-		if _calm_t > 25.0:   # a long stretch without a scratch: the monsters toughen up
-			_calm_t = 12.0
-			_threat_shift(0.05, "The monsters grow bolder…")
-		_airdrop_t -= delta
+		if _calm_t > 40.0:   # a long stretch without a scratch: the monsters toughen up a little
+			_calm_t = 15.0
+			_threat_shift(0.03)
+		if round_no >= BUILD_ROUND:
+			_airdrop_t -= delta
 		if _airdrop_t <= 0.0:
 			_airdrop_t = randf_range(35.0, 50.0)
 			_spawn_crate(near_player(70.0, 160.0))
@@ -800,9 +1054,8 @@ func _process(delta: float) -> void:
 		if to_spawn > 0:
 			_spawn_t -= delta
 			if _spawn_t <= 0.0:
-				_spawn_t = maxf(0.3, 1.5 - round_no * 0.08) * (0.8 if dark > 0.6 else 1.0) / sqrt(threat)
-				var pool: Array = SurvivalMob.ORDER.slice(0, mini(SurvivalMob.ORDER.size(), 2 + 2 * round_no))
-				var tname: String = pool.pick_random()
+				_spawn_t = maxf(0.3, 1.5 - round_no * 0.08) * (0.8 if dark > 0.6 else 1.0) / sqrt(threat) * (0.5 if round_event == "swarm" else 1.0)
+				var tname: String = _spawn_pool().pick_random()
 				var at := _spawn_point()
 				var n := 3 if tname == "wolf" else (2 if tname in ["goblin", "raider", "sapper"] and round_no >= 3 else 1)
 				for k in mini(n, to_spawn):
@@ -810,7 +1063,7 @@ func _process(delta: float) -> void:
 					to_spawn -= 1
 		elif mobs.is_empty() and portals_open == 0:
 			state = "boss_wait"
-			banner("A boss approaches…", Color(1.0, 0.55, 0.45))
+			banner("A boss approaches…", Color(1.0, 0.55, 0.45), true, "Waves cleared")
 			get_tree().create_timer(2.0, false).timeout.connect(_spawn_boss)
 
 	_player_combat(delta)
@@ -911,6 +1164,8 @@ func _aim_input() -> Vector2:
 		return (get_local_mouse_position() - ppos()).normalized()
 	if Input.is_key_pressed(KEY_J):
 		return player.last_dir
+	if auto_fire and not build_mode and state in ["waves", "boss"] and _nearest_mob(ppos(), 330.0) != null:
+		return (get_local_mouse_position() - ppos()).normalized()   # R: keeps firing where you point
 	if _bot:
 		var best := _nearest_mob(ppos(), 400.0)
 		return (best.center() - ppos()).normalized() if best else Vector2.ZERO
@@ -962,13 +1217,10 @@ func _fire(id: String, aim: Vector2) -> void:
 	_fire_t_max = _fire_t
 	var col: Color = w.color
 	var at := ppos() + aim * 9.0
+	_muzzle.color = col
+	_muzzle.energy = lerpf(0.25, 0.9, dark)
 	var n: int = stats.multishot
-	var flash := _Boom.new()
-	flash.radius = 6.0
-	flash.color = col
-	flash.position = at
-	flash.z_index = 4050
-	add_child(flash)
+	SurvivalFx.blast(self, at, 6.0, col)   # muzzle flash
 	match id:
 		"scatter":
 			sfx.play("boom", 0.25)
@@ -1038,6 +1290,7 @@ func _player_shot(at: Vector2, vel: Vector2, w: Dictionary, kind: String) -> Sur
 	s.kind = kind
 	s.r = 3.0 * float(stats.size)
 	s.pierce = int(stats.pierce)
+	s.light_up()
 	return s
 
 
@@ -1111,6 +1364,7 @@ func _dash() -> void:
 		add_child(g)
 		create_tween().tween_property(g, "modulate:a", 0.0, 0.3).finished.connect(g.queue_free)
 	create_tween().tween_property(player, "position", target, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	SurvivalFx.sparks(self, player.position, Color(0.6, 0.95, 1.0), 8, 60.0, -dir)
 
 
 func _separate() -> void:
@@ -1202,6 +1456,8 @@ func shoot(at: Vector2, vel: Vector2, dmg: float, col: Color, hostile := true, b
 	shots.append(s)
 	if hostile and broadcast and net and net.is_host:
 		_net_shots.append(s)   # sent at the end of the frame (after r / homing / slows are set)
+	if hostile:
+		s.light_up()
 	return s
 
 
@@ -1229,12 +1485,11 @@ func fire(at: Vector2, broadcast := true) -> void:
 func explode(at: Vector2, radius: float, dmg: int, hurts_player: bool, hurts_mobs: bool, source: Node = null, mob_dmg := 2.0, broadcast := true) -> void:
 	if hurts_player and broadcast and net and net.is_host:
 		net.send({"t": "hx", "x": snappedf(at.x, 0.1), "y": snappedf(at.y, 0.1), "r": radius, "dm": dmg})
-	var b := _Boom.new()
-	b.position = at
-	b.radius = radius
-	b.z_index = 4050
-	b.material = UNSHADED
-	add_child(b)
+	SurvivalFx.blast(self, at, radius, Color(1.0, 0.6, 0.2))
+	flash_light(at, Color(1.0, 0.6, 0.25), radius)
+	SurvivalFx.sparks(self, at, Color(1.0, 0.85, 0.45), 12, radius * 2.6)
+	if is_walk(at) and not Screen.low():
+		SurvivalFx.scorch(self, at, radius)
 	sfx.play("boom", 0.2)
 	if hurts_player or radius > 34.0:
 		shake()
@@ -1262,12 +1517,14 @@ func floater(at: Vector2, text: String, col: Color) -> void:
 	l.add_theme_color_override("font_color", col)
 	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	l.add_theme_constant_override("outline_size", 4)
-	l.scale = Vector2(0.5, 0.5)
+	var big := text.ends_with("!")   # crits and announcements pop bigger
+	l.scale = Vector2(0.9, 0.9) if big else Vector2(0.7, 0.7)
 	l.position = at + Vector2(randf_range(-6, 2), -6)
 	l.z_index = 4095
 	l.material = UNSHADED
 	add_child(l)
 	var tw := create_tween().set_parallel()
+	tw.tween_property(l, "scale", Vector2(0.62, 0.62) if big else Vector2(0.5, 0.5), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(l, "position:y", l.position.y - 14.0, 0.6)
 	tw.tween_property(l, "modulate:a", 0.0, 0.6).set_delay(0.2)
 	tw.chain().tween_callback(func():
@@ -1341,6 +1598,64 @@ func take_powerup(kind: String) -> void:
 			shake()
 
 
+# ------------------------------------------------------------------ XP, combo, feel
+func xp_need() -> float:
+	return 10.0 + 8.0 * (level - 1)
+
+
+func add_xp(n: float) -> void:
+	xp += n
+	while xp >= xp_need():
+		xp -= xp_need()
+		level += 1
+		_pending_perks += 1
+
+
+# A new level: pick a perk right now (co-op and the test bot get a random one, no pause).
+func _level_up() -> void:
+	sfx.play("levelup", 0.0)
+	pulse(ppos(), 90.0, Color(0.5, 0.9, 1.0))
+	if net or _bot:
+		var i := randi() % UPGRADES.size()
+		_apply_upgrade(i)
+		floater(ppos() + Vector2(0, -26), "Level %d: %s!" % [level, UPGRADES[i][0]], Color(0.5, 0.9, 1.0))
+		return
+	_show_upgrades(func():
+		get_tree().paused = false
+		_invuln = maxf(_invuln, 0.8), "Level %d!" % level)   # a breath to find your feet again
+
+
+# Kills in quick succession: more score, and bonus coins every 10.
+func _combo_kill(at: Vector2) -> void:
+	combo += 1
+	_combo_t = 3.5
+	best_combo = maxi(best_combo, combo)
+	if combo % 10 == 0:
+		sfx.play("combo", 0.0)
+		drop_coins(at, combo / 5)
+		floater(ppos() + Vector2(0, -30), "%d combo!" % combo, PixelUI.GOLD)
+
+
+# Two hearts or fewer: a heartbeat and a red pulse at the screen edge.
+func _low_health(delta: float) -> void:
+	var low := hearts.current_hearts <= 2 and not down
+	_beat_t -= delta
+	if low and _beat_t <= 0.0:
+		_beat_t = 0.9
+		sfx.play("beat", 0.0)
+	_hurt_fx = move_toward(_hurt_fx, 0.0, delta * 2.5)
+	if _post:   # red edges + colour split: a jolt when hit, a slow pulse while nearly dead
+		_post.set_shader_parameter("hurt", maxf(_hurt_fx, (0.25 + 0.2 * sin(_t * 7.0)) if low else 0.0))
+
+
+# A beat of slow motion for the big moments (solo only: co-op clocks must agree).
+func _slowmo(k: float, secs: float) -> void:
+	if _bot or net:
+		return
+	Engine.time_scale = k
+	get_tree().create_timer(secs, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
+
+
 func collect_coin(v: int, at: Vector2) -> void:
 	run_coins += v
 	SurvivalArsenal.add_coins(v)
@@ -1372,8 +1687,10 @@ func hurt_player(dmg: int) -> bool:
 	if hearts.current_hearts <= 2:   # struggling: ease off a little
 		_threat_shift(-0.06)
 	sfx.play("hurt")
-	_hurt_flash.color.a = 0.35
+	_hurt_flash.color.a = 0.35 if Screen.low() else 0.12   # the post shader does the rest
 	create_tween().tween_property(_hurt_flash, "color:a", 0.0, 0.35)
+	_hurt_fx = 1.0
+	SurvivalFx.sparks(self, ppos(), Color(1.0, 0.3, 0.35), 8, 80.0)
 	var away: Vector2 = Vector2.ZERO
 	for m in mobs:   # pushed back from the nearest attacker
 		if is_instance_valid(m) and (away == Vector2.ZERO or m.position.distance_to(player.position) < away.length()):
@@ -1386,10 +1703,19 @@ func hurt_player(dmg: int) -> bool:
 func mob_died(m: SurvivalMob, give_points := true) -> void:
 	mobs.erase(m)
 	_puff(m.center(), m.tint if m.tint != Color.WHITE else Color(0.9, 0.9, 0.9), m.scale_k)
+	SurvivalFx.pop(self, m)
 	sfx.play("kill" if not m.is_boss else "boom")
+	if m.is_boss:   # a proper send-off
+		SurvivalFx.blast(self, m.center(), 90.0, m.boss.shot)
+		SurvivalFx.sparks(self, m.center(), Color(1.0, 0.9, 0.5), 30, 220.0)
+		shake()
+		_slowmo(0.3, 0.6)
 	if give_points and not m.is_clone:
 		kills += 1
-		score += int((m.kind.pts if not m.is_boss else 250) * (1.0 + 0.1 * round_no))
+		_combo_kill(m.position)
+		score += int((m.kind.pts if not m.is_boss else 250) * (1.0 + 0.1 * round_no) * (1.0 + minf(combo, 50.0) * 0.04))
+		if not m.is_boss:
+			add_xp(float(m.kind.pts) / 10.0)
 		if stats.lifesteal > 0 and kills % int(20 / stats.lifesteal) == 0:
 			hearts.heal(1)
 	if "Explosive" in m.mutations:
@@ -1415,6 +1741,9 @@ func mob_died(m: SurvivalMob, give_points := true) -> void:
 		coins = 25 + 5 * round_no if m.is_boss else 1 + int(m.kind.pts) / 12 + (1 if m.mutations.size() > 0 else 0)
 		if dark > 0.6:   # night pays better
 			coins = int(coins * 1.5) + 1
+		if round_event == "gold":
+			coins *= 2
+		coins = int(ceil(coins * _coin_k))
 		drop_coins(m.position, coins)
 		_maybe_powerup(m.position, m.is_boss)
 		if m.is_boss:
@@ -1443,7 +1772,7 @@ func mob_died(m: SurvivalMob, give_points := true) -> void:
 		_upgrade_wait = 0.0
 		if net:
 			net.send_state()
-		banner("Round %d cleared!" % round_no, Color(0.5, 1.0, 0.6))
+		banner("Round %d cleared!" % round_no, Color(0.5, 1.0, 0.6), true, "Pick a perk")
 		get_tree().create_timer(1.6, false).timeout.connect(_show_upgrades)
 
 
@@ -1475,17 +1804,19 @@ func _heart_drop(at: Vector2) -> void:
 
 
 # ------------------------------------------------------------------ upgrades / end
-func _show_upgrades() -> void:
+# Pick 1 of 3 perks. After a boss (no `then`) the loadout page follows; a level-up
+# passes its own `then` and goes straight back to the fight.
+func _show_upgrades(then := Callable(), title := "Choose a perk") -> void:
 	if state == "over":
 		return
 	if net == null:
 		get_tree().paused = true
 	var layer := CanvasLayer.new()
 	add_child(layer)
-	var v := PixelUI.page(layer, "⚔ Choose a perk", 760, func(): pass)
+	var v := PixelUI.page(layer, title, 780, func(): pass)
 	(v.get_child(0) as HBoxContainer).get_child(1).visible = false   # no close: you always pick one
 	sfx.play("upgrade", 0.0)
-	v.add_child(PixelUI.label("Round %d cleared · Score %d" % [round_no, score], 26, PixelUI.MUTED))
+	v.add_child(PixelUI.label("Level %d  ·  Round %d  ·  Score %d" % [level, round_no, score], 24, PixelUI.MUTED))
 	var row := BoxContainer.new()
 	row.vertical = Screen.is_narrow()   # stacked on a portrait phone
 	row.add_theme_constant_override("separation", 12)
@@ -1494,25 +1825,79 @@ func _show_upgrades() -> void:
 	picks.shuffle()
 	for i in picks.slice(0, 3):
 		var u: Array = UPGRADES[i]
-		var b := PixelUI.button("%s\n%s" % [u[0], u[1]], func():
+		var b := _card([_icon("perk_" + PERK_ICONS[i])], u[0], str(u[1]).replace("\n", " "), func():
 			_apply_upgrade(i)
 			layer.queue_free()
-			if _bot:
-				get_tree().paused = false
-				_show_loadout(_next_round)
-			elif net:
-				_show_armory(func(): _show_loadout(_mark_ready))
+			if then.is_valid():
+				then.call()
 			else:
-				_show_armory(func():
-					_show_loadout(func():
-						get_tree().paused = false
-						_next_round())), i == picks[0])
-		b.custom_minimum_size = Vector2(220, 120) if not row.vertical else Vector2(0, 86)
+				_after_boss_perk())
 		if _bot and i == picks[0]:
 			get_tree().create_timer(1.0, true).timeout.connect(b.emit_signal.bind("pressed"))
-		b.add_theme_font_size_override("font_size", 26)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(b)
+
+
+# Boss beaten and perk picked: gear up for the next round.
+func _after_boss_perk() -> void:
+	if _bot:
+		get_tree().paused = false
+		_show_loadout(_next_round)
+	elif (round_no + 1) % 2 == 0:   # gear is handed out every other round: fewer menus
+		if net:
+			_mark_ready()
+		else:
+			get_tree().paused = false
+			_next_round()
+	elif net:
+		_show_loadout(_mark_ready)
+	else:
+		_show_loadout(func():
+			get_tree().paused = false
+			_next_round())
+
+
+func _icon(name: String) -> Texture2D:
+	return load("res://assets/survival/%s.png" % name)
+
+
+# A big choice card: icons on top, a gold title, a line or two of description.
+func _card(icons: Array, title: String, desc: String, on_pick: Callable) -> Button:
+	var narrow := Screen.is_narrow()
+	var b := PixelUI.button("", on_pick)
+	b.custom_minimum_size = Vector2(0, 132) if narrow else Vector2(232, 196)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var col := VBoxContainer.new()
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.offset_left = 12
+	col.offset_right = -12
+	col.offset_top = 8
+	col.offset_bottom = -8
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 2 if narrow else 6)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(col)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(row)
+	for tex in icons:
+		var r := TextureRect.new()
+		r.texture = tex
+		r.custom_minimum_size = Vector2(36, 36) if narrow else Vector2(56, 56)
+		r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(r)
+	var t := PixelUI.label(title, 30, PixelUI.GOLD)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(t)
+	var d := PixelUI.label(desc, 20, PixelUI.CREAM)
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(d)
+	return b
 
 
 # Armory: buy weapons and level them up with coins. Progress is saved, so every run
@@ -1558,12 +1943,20 @@ func _fill_armory() -> void:
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", 12)
 		card.add_child(h)
+		var pic := TextureRect.new()
+		pic.texture = _icon("wpn_" + id)
+		pic.custom_minimum_size = Vector2(56, 56)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		pic.modulate = Color.WHITE if lvl > 0 else Color(0.45, 0.45, 0.55)
+		h.add_child(pic)
 		var info := VBoxContainer.new()
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info.add_theme_constant_override("separation", 0)
 		h.add_child(info)
 		var stars := "★".repeat(lvl) + "☆".repeat(SurvivalArsenal.MAX_LEVEL - lvl)
-		info.add_child(PixelUI.label("%s %s   %s" % [d.icon, d.name, stars if lvl > 0 else "(locked)"], 28,
+		info.add_child(PixelUI.label("%s   %s" % [d.name, stars if lvl > 0 else "(locked)"], 28,
 			PixelUI.GOLD if lvl > 0 else PixelUI.MUTED, false))
 		var desc := PixelUI.label(d.desc, 20, PixelUI.CREAM, false)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1615,8 +2008,16 @@ func _on_died() -> void:
 	Global.stats["survival_best_round"] = maxi(best_round, round_no)
 	Global.stats["survival_best_score"] = maxi(best_score, score)
 	Global.save_game()
+	Engine.time_scale = 1.0
+	var earned := run_xp()
+	var up := _bank_run()
+	var rank_line := "[color=#7fe0ff]+%d rank XP%s[/color]" % [earned, ("   ·   RANK UP: %s! %s" % [up, RANKS[rank()][2]]) if up != "" else
+		("   ·   %s" % RANKS[rank()][0])]
+	Global.save_game()
 	RoundCard.show_card(self, "You fell in round %d" % round_no,
-		"Score %d   ·   Kills %d\n%s" % [score, kills, "[color=#ffd166]New best![/color]" if new_best else "Best: round %d · %d pts" % [best_round, best_score]],
+		"Score %d   ·   Kills %d   ·   Bosses %d\nSurvived %d:%02d   ·   Level %d   ·   Best combo x%d   ·   %d coins\n%s\n%s" % [score, kills, bosses_killed,
+			int(_run_t) / 60, int(_run_t) % 60, level, best_combo, run_coins, rank_line,
+			"[color=#ffd166]New best![/color]" if new_best else "Best: round %d · %d pts" % [best_round, best_score]],
 		[["Try again", func(): get_tree().reload_current_scene()],
 		 ["Home", func(): get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")]], true)
 
@@ -1642,6 +2043,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				else:
 					_select_weapon(i)
 			KEY_B: _toggle_build()
+			KEY_R:
+				auto_fire = not auto_fire
+				banner_small("Auto-fire on: just aim" if auto_fire else "Auto-fire off: hold to shoot")
+				sfx.play("pickup", 0.0)
 			KEY_T:
 				if trader and trader.near_player(44.0):
 					_show_trader()
@@ -1673,7 +2078,7 @@ func _open_pause() -> void:
 		get_tree().change_scene_to_file("res://ui/home_screen/home_screen.tscn")])
 	RoundCard.show_card(self, "Paused",
 		"Left stick move · drag right side to aim\n⇄ weapon · DASH dodge · ↑ jump\nBUILD machines · TRADE · tap hotbar items" if Screen.is_touch
-			else "Mouse aim, hold left to shoot · Q/E or wheel: weapon\nRight-click / K dash · Space jump · Shift sprint\nB build · T trade · Z X C V F G items", buttons, net == null)
+			else "Mouse aim, hold left to shoot · Q/E or wheel: weapon\nRight-click / K dash · Space jump · Shift sprint\nR auto-fire · B build · T trade · Z X C V F G items", buttons, net == null)
 
 
 # ------------------------------------------------------------------ co-op helpers
@@ -1738,7 +2143,11 @@ func copy_died(m: SurvivalMob, coins: int) -> void:
 	mobs.erase(m)
 	_puff(m.center(), m.tint if m.tint != Color.WHITE else Color(0.9, 0.9, 0.9), m.scale_k)
 	sfx.play("kill" if not m.is_boss else "boom", 0.1)
+	SurvivalFx.pop(self, m)
 	if coins > 0:
+		_combo_kill(m.position)
+		if not m.is_boss:
+			add_xp(float(m.kind.pts) / 10.0)
 		drop_coins(m.position, coins)
 		_maybe_powerup(m.position, m.is_boss)
 		if m.is_boss:
@@ -1767,6 +2176,8 @@ func apply_state(d: Dictionary) -> void:
 	elif new_state != "over":
 		state = new_state
 	to_spawn = int(d.get("ts", 0))
+	round_event = str(d.get("ev", ""))
+	wave_total = int(d.get("wt", wave_total))
 	score = int(d.get("sc", score))
 	kills = int(d.get("k", kills))
 	var day := float(d.get("d", _day_t))
@@ -1795,6 +2206,7 @@ func game_over_mp(broadcast := true) -> void:
 	var best_round := int(Global.stats.get("survival_best_round", 0))
 	Global.stats["survival_best_round"] = maxi(best_round, round_no)
 	Global.stats["survival_best_score"] = maxi(int(Global.stats.get("survival_best_score", 0)), score)
+	_bank_run()
 	Global.save_game()
 	var buttons := []
 	if net and net.is_host:
@@ -1810,50 +2222,28 @@ func game_over_mp(broadcast := true) -> void:
 
 # ------------------------------------------------------------------ HUD
 func _build_hud() -> void:
-	var hud := CanvasLayer.new()
-	hud.layer = 5
-	add_child(hud)
-	var info := PixelUI.panel(PixelUI.FRAME, 16, 6)
-	info.position = Vector2(16, 14)
-	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_child(info)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	info.add_child(col)
-	_round_lbl = PixelUI.label("", 30, PixelUI.GOLD, false)
-	_score_lbl = PixelUI.label("", 22, PixelUI.CREAM, false)
-	_weapon_lbl = PixelUI.label("", 20, PixelUI.MUTED, false)
-	col.add_child(_round_lbl)
-	col.add_child(_score_lbl)
-	col.add_child(_weapon_lbl)
-	_coin_lbl = PixelUI.label("", 22, PixelUI.GOLD, false)
-	col.add_child(_coin_lbl)
-	_threat_lbl = PixelUI.label("", 20, PixelUI.CREAM, false)
-	col.add_child(_threat_lbl)
-	var dash_bg := ColorRect.new()
-	dash_bg.color = Color(0.1, 0.12, 0.2)
-	dash_bg.custom_minimum_size = Vector2(160, 6)
-	col.add_child(dash_bg)
-	_dash_fill = ColorRect.new()
-	_dash_fill.color = Color(0.45, 0.9, 1.0)
-	_dash_fill.size = Vector2(160, 6)
-	dash_bg.add_child(_dash_fill)
+	var layer := CanvasLayer.new()
+	layer.layer = 5
+	add_child(layer)
+	hud = SurvivalHud.new()   # XP strip, status panel, weapon slots, combo (hud.gd)
+	hud.game = self
+	layer.add_child(hud)
 
 	# radar: where the monsters (red), the boss (big), coins-rich friends (their colour) are
 	var radar := _Radar.new()
 	radar.game = self
-	radar.position = Vector2(16, 196)
+	radar.position = Vector2(16, SurvivalHud.H + 22.0)
 	radar.custom_minimum_size = Vector2(92, 92)
 	radar.size = Vector2(92, 92)
 	radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_child(radar)
+	layer.add_child(radar)
 
 	_hurt_flash = ColorRect.new()
 	_hurt_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_hurt_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hurt_flash.color = Color(0.85, 0.05, 0.1, 0.0)
-	hud.add_child(_hurt_flash)
-	hud.move_child(_hurt_flash, 0)
+	layer.add_child(_hurt_flash)
+	layer.move_child(_hurt_flash, 0)
 
 	_boss_panel = PixelUI.panel(PixelUI.FRAME, 18, 8)
 	_boss_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -1861,7 +2251,7 @@ func _build_hud() -> void:
 	_boss_panel.offset_top = 14
 	_boss_panel.visible = false
 	_boss_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_child(_boss_panel)
+	layer.add_child(_boss_panel)
 	var bv := VBoxContainer.new()
 	_boss_panel.add_child(bv)
 	_boss_name = PixelUI.label("", 30, Color(1.0, 0.55, 0.45))
@@ -1874,6 +2264,16 @@ func _build_hud() -> void:
 	_boss_fill.color = Color(0.86, 0.18, 0.22)
 	_boss_fill.size = Vector2(520, 16)
 	bar.add_child(_boss_fill)
+	var shine := ColorRect.new()   # highlight along the top of the bar
+	shine.color = Color(1, 1, 1, 0.22)
+	shine.size = Vector2(520, 4)
+	shine.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(shine)
+	var mark := ColorRect.new()    # half health: the boss enrages here
+	mark.color = Color(1.0, 0.9, 0.6, 0.9)
+	mark.position = Vector2(259, -2)
+	mark.size = Vector2(2, 20)
+	bar.add_child(mark)
 
 	_banner = PixelUI.label("", 58, PixelUI.GOLD)
 	_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
@@ -1881,10 +2281,19 @@ func _build_hud() -> void:
 	_banner.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	_banner.offset_left = -500
 	_banner.offset_right = 500
-	_banner.offset_top = -150
-	_banner.offset_bottom = -80
+	_banner.offset_top = -170
+	_banner.offset_bottom = -100
+	_banner.pivot_offset = Vector2(500, 35)
 	_banner.modulate.a = 0.0
-	hud.add_child(_banner)
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(_banner)
+	_banner_sub = PixelUI.label("", 28, PixelUI.CREAM)   # second line: what the banner means
+	_banner_sub.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_banner_sub.add_theme_constant_override("outline_size", 8)
+	_banner_sub.position = Vector2(0, 64)
+	_banner_sub.size = Vector2(1000, 32)
+	_banner_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.add_child(_banner_sub)
 
 	_prep_lbl = PixelUI.label("", 30, PixelUI.GOLD)
 	_prep_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
@@ -1894,53 +2303,107 @@ func _build_hud() -> void:
 	_prep_lbl.offset_right = 400
 	_prep_lbl.offset_top = 96
 	_prep_lbl.visible = false
-	hud.add_child(_prep_lbl)
-	_build_hotbar(hud)
-	_build_build_bar(hud)
+	layer.add_child(_prep_lbl)
+	_build_hotbar(layer)
+	_build_build_bar(layer)
 
-	var keys := PixelUI.label("Mouse aim + shoot  ·  Q / E weapon  ·  Right-click / K dash  ·  B build  ·  T trade  ·  Z X C V F G items  ·  Esc pause", 18, Color(PixelUI.MUTED, 0.75))
+	var keys := PixelUI.label("Mouse aim + shoot  ·  Q / E weapon  ·  Right-click / K dash  ·  R auto-fire  ·  B build  ·  T trade  ·  Z X C V F G items  ·  Esc pause", 18, Color(PixelUI.MUTED, 0.75))
 	keys.visible = not Screen.is_touch
 	keys.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	keys.offset_left = -560
 	keys.offset_right = 560
 	keys.offset_top = -30
-	hud.add_child(keys)
+	layer.add_child(keys)
 
 
+# The hand-drawn HUD reads the game every frame; only these two need pushing.
 func _update_hud() -> void:
-	_round_lbl.text = "⚔ Round %d" % round_no
-	var left := mobs.size() + to_spawn + portals_open
-	_score_lbl.text = "Score %d · Kills %d%s" % [score, kills, ("   ·   %d left" % left) if state == "waves" else ""]
-	var wid := weapon_id()
-	var wd: Dictionary = SurvivalArsenal.WEAPONS[wid]
-	_weapon_lbl.text = "%s %s %s%s" % [wd.icon, wd.name, ("· ammo %d" % int(ammo[wid])) if ammo.has(wid) else "Lv%d" % SurvivalArsenal.level(wid),
-		("   (%d/%d)" % [weapon_i + 1, weapons.size()]) if weapons.size() > 1 else ""]
-	_coin_lbl.text = "🪙 %d%s%s%s%s" % [SurvivalArsenal.coins(), ("   RAGE %d" % ceili(_rage_t)) if _rage_t > 0.0 else "",
-		("   SHIELD %d" % ceili(_shield_t)) if _shield_t > 0.0 else "", ("   SWIFT %d" % ceili(_speed_t)) if _speed_t > 0.0 else "",
-		("   POWER %d" % ceili(_power_t)) if _power_t > 0.0 else ""]
-	_threat_lbl.text = "☠ Threat ×%.2f" % threat
-	_threat_lbl.add_theme_color_override("font_color", Color(0.55, 1.0, 0.6).lerp(Color(1.0, 0.4, 0.35), clampf((threat - 0.8) / 1.6, 0.0, 1.0)))
 	_prep_lbl.visible = state == "prep"
 	if state == "prep":
 		_prep_lbl.text = ("Next wave in %d  ·  %s" % [ceili(_prep_t), "tap GO" if Screen.is_touch else "Enter: start now"]) \
 			if net == null or net.is_host else "Get ready…"
-	_dash_fill.size.x = 160.0 * clampf(1.0 - _dash_t / stats.dash_cd, 0.0, 1.0)
-	_dash_fill.color = Color(0.45, 0.9, 1.0) if _dash_t <= 0.0 else Color(0.3, 0.45, 0.6)
 	if boss and is_instance_valid(boss):
 		_boss_fill.size.x = 520.0 * clampf(boss.hp / boss.max_hp, 0.0, 1.0)
 		_boss_fill.color = Color(1.0, 0.45, 0.15) if boss.enraged else Color(0.86, 0.18, 0.22)
 
 
-func banner(text: String, col: Color, broadcast := true) -> void:
+var _banner_tw: Tween
+
+
+# A new part of the game opens up: say so, loudly.
+func _unlocked(what: String, how: String) -> void:
+	sfx.play("levelup", 0.0)
+	get_tree().create_timer(2.4, false).timeout.connect(func(): banner(what, Color(0.5, 0.95, 1.0), false, how))
+
+
+# ------------------------------------------------------------------ ranks (kept between runs)
+static func rank_xp() -> int:
+	return int(Global.stats.get("survival_rank_xp", 0))
+
+
+static func rank() -> int:
+	var r := 0
+	for i in RANKS.size():
+		if rank_xp() >= int(RANKS[i][1]):
+			r = i
+	return r
+
+
+# Permanent bonuses of every rank reached so far.
+func _apply_rank() -> void:
+	var r := rank()
+	if r >= 1:
+		items["potion_heal"] = 1
+	if r >= 2:
+		stats.dmg *= 1.1
+	if r >= 3:
+		hearts.set_max(hearts.max_hearts + 1)
+		hearts.heal(1)
+	if r >= 4:
+		stats.dash_cd *= 0.8
+	if r >= 5:
+		var g: String = SurvivalArsenal.AIRDROP.keys().pick_random()
+		ammo[g] = int(SurvivalArsenal.AIRDROP[g]) / 2
+	if r >= 6:
+		_coin_k = 1.15
+	if r >= 7:
+		hearts.set_max(hearts.max_hearts + 1)
+		hearts.heal(1)
+		stats.dmg *= 1.1
+
+
+# What this run is worth in rank XP: every kill, boss and round counts.
+func run_xp() -> int:
+	return kills + 25 * bosses_killed + 10 * maxi(round_no - 1, 0)
+
+
+# Pay the rank XP of this run out once (death, game over or quitting). Returns the new
+# rank name when it went up, else "".
+func _bank_run() -> String:
+	if _banked or _bot:
+		return ""
+	_banked = true
+	var before := rank()
+	Global.stats["survival_rank_xp"] = rank_xp() + run_xp()
+	Global.stats["survival_autofire"] = auto_fire
+	return str(RANKS[rank()][0]) if rank() > before else ""
+
+# Big centre-screen announcement; `sub` is an optional second line.
+func banner(text: String, col: Color, broadcast := true, sub := "") -> void:
 	if broadcast and net and net.is_host:
-		net.send({"t": "bn", "tx": text, "c": col.to_html()})
+		net.send({"t": "bn", "tx": text, "c": col.to_html(), "sb": sub})
 	print("[Survival] ", text, "   (score %d, kills %d)" % [score, kills])
 	_banner.text = text
+	_banner_sub.text = sub
 	_banner.add_theme_color_override("font_color", col)
-	var tw := create_tween()
-	tw.tween_property(_banner, "modulate:a", 1.0, 0.2)
-	tw.tween_interval(1.4)
-	tw.tween_property(_banner, "modulate:a", 0.0, 0.5)
+	if _banner_tw:
+		_banner_tw.kill()
+	_banner.scale = Vector2(1.35, 1.35)
+	_banner_tw = create_tween()
+	_banner_tw.tween_property(_banner, "modulate:a", 1.0, 0.15)
+	_banner_tw.parallel().tween_property(_banner, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_banner_tw.tween_interval(1.5)
+	_banner_tw.tween_property(_banner, "modulate:a", 0.0, 0.5)
 
 
 func banner_small(text: String) -> void:
@@ -1950,7 +2413,7 @@ func banner_small(text: String) -> void:
 # ------------------------------------------------------------------ difficulty
 # Monster health: round, your firepower (perks + weapon levels) and the threat level.
 func hp_mult() -> float:
-	return 1.25 * (1.0 + 0.16 * (round_no - 1)) * threat * _power_k()
+	return 1.25 * (1.0 + 0.16 * (round_no - 1)) * threat * _power_k() * {"swarm": 0.5, "elite": 1.15}.get(round_event, 1.0)
 
 
 func _power_k() -> float:
@@ -1962,7 +2425,7 @@ func _power_k() -> float:
 			n += 1
 	lv /= maxf(n, 1.0)
 	var p := float(stats.dmg) * float(stats.fire_rate) * (0.7 + 0.3 * float(stats.multishot)) * (1.0 + 0.2 * maxf(lv - 1.0, 0.0))
-	return clampf(pow(p, 0.75), 1.0, 6.0)
+	return clampf(pow(p, 0.4), 1.0, 2.5)   # monsters keep up only partly: perks make you stronger
 
 
 # Machines, troopers and airdrop guns keep up with the rounds.
@@ -1974,7 +2437,7 @@ func _threat_shift(d: float, why := "") -> void:
 	if _bot or _god or (net and not net.is_host):
 		return
 	var old := threat
-	threat = clampf(threat + d, 0.6, 3.5)
+	threat = clampf(threat + d, 0.7, 2.0)
 	if why != "" and absf(threat - old) > 0.001:
 		banner_small(why)
 
@@ -1983,7 +2446,7 @@ func _threat_shift(d: float, why := "") -> void:
 func _round_threat() -> void:
 	var quick := _round_t < 50.0 + 8.0 * round_no
 	if _round_hurt == 0:
-		_threat_shift(0.2 if quick else 0.12, "Flawless! The monsters send tougher troops")
+		_threat_shift(0.1 if quick else 0.06, "Flawless round!")
 	elif _round_hurt <= 2:
 		_threat_shift(0.08 if quick else 0.04)
 	elif _round_hurt >= hearts.max_hearts:
@@ -2104,6 +2567,9 @@ func place_machine(mid: String, cell: Vector2i) -> bool:
 func _toggle_build(on := not build_mode) -> void:
 	if state in ["intro", "over"]:
 		return
+	if on and round_no < BUILD_ROUND and not _bot:
+		banner_small("Building unlocks in round %d" % BUILD_ROUND)
+		return
 	build_mode = on
 	if not on:
 		build_pick = ""
@@ -2222,13 +2688,8 @@ func mob_escaped(m: SurvivalMob) -> void:
 
 
 func pulse(at: Vector2, radius: float, col: Color) -> void:
-	var b := _Boom.new()
-	b.position = at
-	b.radius = radius
-	b.color = col
-	b.z_index = 4050
-	b.material = UNSHADED
-	add_child(b)
+	SurvivalFx.blast(self, at, radius, col)
+	flash_light(at, col, radius)
 
 
 func _spawn_crate(at: Vector2) -> void:
@@ -2342,7 +2803,7 @@ func _build_build_bar(hud: CanvasLayer) -> void:
 	var title := PixelUI.label("🔨 Build", 30, PixelUI.GOLD, false)
 	head.add_child(title)
 	var hint := PixelUI.label("pick, then tap ✓ Place (it goes in front of you)" if Screen.is_touch
-		else "1-8 pick  ·  click to place  ·  right-click cancel  ·  prices +12% each round", 18, PixelUI.MUTED, false)
+		else "1-8 pick  ·  click to place  ·  right-click cancel  ·  prices +6% each round", 18, PixelUI.MUTED, false)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	head.add_child(hint)
@@ -2491,9 +2952,10 @@ func _fill_trader() -> void:
 
 
 # Pick 1 of 3 loadouts before a round. `then` runs after the pick.
-func _show_loadout(then: Callable) -> void:
-	var picks := SurvivalItems.LOADOUTS.duplicate()
-	picks.shuffle()
+func _show_loadout(then: Callable, picks: Array = []) -> void:
+	if picks.is_empty():
+		picks = SurvivalItems.LOADOUTS.filter(func(l): return round_no + 1 >= BUILD_ROUND or not l.has("builds"))
+		picks.shuffle()
 	if _bot:
 		_apply_loadout(picks[0])
 		then.call()
@@ -2502,7 +2964,7 @@ func _show_loadout(then: Callable) -> void:
 		get_tree().paused = true
 	var layer := CanvasLayer.new()
 	add_child(layer)
-	var v := PixelUI.page(layer, "🎒 Loadout · Round %d" % (round_no + 1), 820, func(): pass)
+	var v := PixelUI.page(layer, "Loadout · Round %d" % (round_no + 1), 820, func(): pass)
 	(v.get_child(0) as HBoxContainer).get_child(1).visible = false   # no close: you always pick one
 	v.add_child(PixelUI.label("Pick your gear for the next round", 24, PixelUI.MUTED))
 	var row := BoxContainer.new()
@@ -2511,14 +2973,26 @@ func _show_loadout(then: Callable) -> void:
 	v.add_child(row)
 	for i in 3:
 		var l: Dictionary = picks[i]
-		var b := PixelUI.button("%s\n%s" % [l.name, l.desc], func():
+		var icons: Array = []
+		for g in l.get("guns", {}):
+			icons.append(_icon("wpn_" + g))
+		for mid in l.get("builds", {}):
+			icons.append(SurvivalItems.frame0(SurvivalMachine.sprite_path(mid)))
+		for id in l.get("items", {}):
+			icons.append(SurvivalItems.icon(id))
+		if l.has("coins"):
+			icons.append(_icon("ico_coin"))
+		row.add_child(_card(icons, l.name, str(l.desc).replace("\n", " "), func():
 			_apply_loadout(l)
 			layer.queue_free()
-			then.call(), i == 0)
-		b.custom_minimum_size = Vector2(240, 130) if not row.vertical else Vector2(0, 96)
-		b.add_theme_font_size_override("font_size", 24)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(b)
+			then.call()))
+	# the Armory is one tap away (same three loadouts when you come back)
+	var shop := PixelUI.button("Armory: weapons and upgrades  ·  %d coins" % SurvivalArsenal.coins(), func():
+		layer.queue_free()
+		_show_armory(func(): _show_loadout(then, picks)))
+	shop.custom_minimum_size = Vector2(0, 52)
+	shop.add_theme_font_size_override("font_size", 24)
+	v.add_child(shop)
 
 
 func _apply_loadout(l: Dictionary) -> void:
@@ -2623,24 +3097,13 @@ class _Portal extends Node2D:
 		queue_redraw()
 	func _draw() -> void:
 		var k := clampf(_t / 0.7, 0.0, 1.0)
+		draw_rect(Rect2(-5.0 * k, -46.0 * k, 10.0 * k, 46.0 * k), Color(0.8, 0.5, 1.0, 0.22 * k))   # beam
+		draw_rect(Rect2(-2.0 * k, -46.0 * k, 4.0 * k, 46.0 * k), Color(1.0, 0.85, 1.0, 0.3 * k))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.5))
-		draw_circle(Vector2.ZERO, 4.0 + 10.0 * k, Color(0.25, 0.05, 0.35, 0.8))
+		draw_circle(Vector2.ZERO, 5.0 + 12.0 * k, Color(0.7, 0.35, 1.0, 0.25))
+		draw_circle(Vector2.ZERO, 4.0 + 10.0 * k, Color(0.2, 0.04, 0.3, 0.9))
 		draw_arc(Vector2.ZERO, 4.0 + 12.0 * k, _t * 6.0, _t * 6.0 + 4.0, 16, Color(0.8, 0.4, 1.0), 2.0)
-
-
-class _Boom extends Node2D:
-	var radius := 40.0
-	var color := Color(1.0, 0.6, 0.2)
-	var _t := 0.0
-	func _process(delta: float) -> void:
-		_t += delta
-		if _t > 0.35:
-			queue_free()
-		queue_redraw()
-	func _draw() -> void:
-		var k := _t / 0.35
-		draw_circle(Vector2.ZERO, radius * k, Color(color, 0.45 * (1.0 - k)))
-		draw_arc(Vector2.ZERO, radius * k, 0.0, TAU, 32, Color(color.lightened(0.5), 1.0 - k), 2.0)
+		draw_arc(Vector2.ZERO, 2.0 + 7.0 * k, -_t * 8.0, -_t * 8.0 + 3.0, 12, Color(1.0, 0.8, 1.0), 1.5)
 
 
 class _Fire extends Node2D:
@@ -2670,10 +3133,9 @@ class _Heart extends Node2D:
 			game.floater(position, "+1 heart", Color(1.0, 0.5, 0.6))
 			queue_free()
 	func _draw() -> void:
-		var c := Color(0.95, 0.25, 0.35)
-		draw_circle(Vector2(-2, -1), 2.5, c)
-		draw_circle(Vector2(2, -1), 2.5, c)
-		draw_colored_polygon(PackedVector2Array([Vector2(-4.5, 0), Vector2(4.5, 0), Vector2(0, 5)]), c)
+		var blink := 1.0 if _t < 7.0 or int(_t * 6.0) % 2 == 0 else 0.4   # about to vanish
+		draw_texture_rect(SurvivalFx.GLOW, Rect2(-11, -11, 22, 22), false, Color(1.0, 0.3, 0.4, 0.5 * blink))
+		draw_texture_rect(preload("res://assets/ui/heart_full.png"), Rect2(-6, -6, 12, 12), false, Color(1, 1, 1, blink))
 
 
 # Lightning bolt between points (Storm Rod).
@@ -2763,11 +3225,13 @@ class _Coin extends Node2D:
 		queue_redraw()
 	func _draw() -> void:
 		var squash := absf(cos(_t * 5.0)) * 0.7 + 0.3   # spinning
-		var r := 2.6 if value < 5 else 3.6
-		draw_set_transform(Vector2(0, -2.0 - absf(sin(_t * 4.0)) * 1.5), 0.0, Vector2(squash, 1.0))
-		draw_circle(Vector2.ZERO, r + 0.8, Color(0.35, 0.2, 0.05))
-		draw_circle(Vector2.ZERO, r, Color(1.0, 0.8, 0.2))
-		draw_circle(Vector2(-0.8, -0.8), r * 0.4, Color(1.0, 0.97, 0.7))
+		var r := 4.0 if value < 5 else 5.5
+		draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.5))
+		draw_circle(Vector2.ZERO, r * 0.7, Color(0, 0, 0, 0.25))   # shadow
+		draw_set_transform(Vector2(0, -3.0 - absf(sin(_t * 4.0)) * 2.0), 0.0, Vector2(squash, 1.0))
+		draw_texture_rect(preload("res://assets/survival/ico_coin.png"), Rect2(-r, -r, r * 2.0, r * 2.0), false)
+		if fmod(_t + value, 1.2) < 0.12:   # glint
+			draw_rect(Rect2(-r * 0.5, -r * 0.7, 1.5, 1.5), Color(1, 1, 1, 0.95))
 
 
 # Danger zone shown before a boss lands / charges, so attacks are fair to dodge.
@@ -2861,6 +3325,7 @@ class _Pickup extends Node2D:
 		var col: Color = game.POWERUPS[kind][1]
 		var y := -6.0 + sin(_t * 4.0) * 1.5
 		var blink := 1.0 if _t < 11.0 or int(_t * 6.0) % 2 == 0 else 0.35
+		draw_texture_rect(SurvivalFx.GLOW, Rect2(-14, y - 14, 28, 28), false, Color(col, 0.6 * blink))
 		draw_circle(Vector2(0, y), 7.5 + sin(_t * 6.0) * 0.8, Color(col, 0.25 * blink))
 		draw_colored_polygon(PackedVector2Array([Vector2(0, y - 6), Vector2(5, y), Vector2(0, y + 6), Vector2(-5, y)]), Color(col, blink))
 		draw_colored_polygon(PackedVector2Array([Vector2(0, y - 3), Vector2(2.5, y), Vector2(0, y + 3), Vector2(-2.5, y)]), Color(1, 1, 1, 0.85 * blink))

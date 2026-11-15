@@ -11,14 +11,20 @@ uniform float bloom = 0.15;
 uniform float sun_rays = 0.0;                 // 0 at noon/night, ~1 at sunrise/sunset
 uniform vec2 sun_pos = vec2(1.15, -0.2);      // screen UV of the sun (off-screen corner)
 uniform vec3 sun_color = vec3(1.0, 0.8, 0.55);
+uniform float hurt = 0.0;                     // 0..1: red edges + colour split (Survival: hit / low health)
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 
 void fragment() {
 	vec3 c = texture(screen_tex, SCREEN_UV).rgb;
+	if (hurt > 0.001) {
+		vec2 split = (SCREEN_UV - 0.5) * hurt * 0.014;
+		c.r = texture(screen_tex, SCREEN_UV + split).r;
+		c.b = texture(screen_tex, SCREEN_UV - split).b;
+	}
 
 	// cheap bloom: blurred mip of the bright parts (lava, lights, fireflies)
-	vec3 blur = textureLod(screen_tex, SCREEN_UV, 3.0).rgb;
+	vec3 blur = (textureLod(screen_tex, SCREEN_UV, 3.0).rgb + textureLod(screen_tex, SCREEN_UV, 5.0).rgb) * 0.5;
 	c += max(blur - 0.78, 0.0) * bloom * 2.5;  // only real highlights (lava, flames)
 
 	// low-sun shafts + glow from the sun's side of the screen
@@ -39,6 +45,7 @@ void fragment() {
 
 	vec2 d = SCREEN_UV - 0.5;
 	c *= 1.0 - dot(d, d) * vignette * 2.2;
+	c = mix(c, vec3(0.75, 0.05, 0.08), smoothstep(0.3, 0.75, length(d)) * hurt * 0.55);
 
 	c += (hash(SCREEN_UV * 1000.0 + TIME) - 0.5) * grain;
 	COLOR = vec4(c, 1.0);
