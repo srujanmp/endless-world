@@ -4,7 +4,7 @@
 #   powershell -ExecutionPolicy Bypass -File tools\package.ps1 -Godot "C:\Godot\Godot_v4.5.1-stable_win64_console.exe"
 #
 # Output (in build\):
-#   EndlessWorlds-Windows.zip       the game (one .exe, relay URL baked in) - give this to every player
+#   EndlessWorlds-Windows.zip       the game (.exe + WebRTC dll, relay URL baked in) - give this to every player
 #   EndlessWorlds-AI-Server.zip     the Python AI server - only the host needs it
 #   web\                            HTML5 build for GitHub Pages / itch.io
 #

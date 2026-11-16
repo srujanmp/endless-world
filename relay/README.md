@@ -86,6 +86,21 @@ delivers to everyone else in the room, or to one player when the message has `to
 | `error` | relay → joiner | `Room not found`, `Room is full (10 players max)`, `That room code is taken` |
 | `host_left` | relay → room | host disconnected; the room is closed |
 | `start`, `riddle`, `hint`, `pos`, `chat`, `won`, `api`, `api_reply` | game ↔ game | forwarded untouched (see `core/net.gd`) |
+| `rtc` | game ↔ game | WebRTC signalling `{k: offer\|answer\|ice, ...}`, always sent `to` one peer |
+
+**Peer-to-peer.** The relay is also the signalling server and the fallback. Every pair of
+players tries a direct WebRTC data channel (STUN only, no TURN). Once the channel is open,
+their game messages skip the relay. The higher id of each pair sends the offer. If the link
+doesn't open within 12 s, fails, or drops, that pair uses the relay, and the offering side
+retries up to 3 times. A NAT that blocks P2P costs latency, not the game. On switching, each
+side sends `rtc{k:"go"}` through the relay and the receiver reads direct packets only after it,
+so nothing is reordered or duplicated. Packets over 60 KB (voice clips) always use the relay.
+Browsers have WebRTC built in. The Windows build uses `addons/webrtc_native`
+(godotengine/webrtc-native 1.2.2). TURN isn't used: it would relay through Cloudflare just
+like this Worker does.
+
+Test (one host + N-1 guests, each a headless Godot; add `--no-p2p` to a guest to force the
+relay for it): `res://tools/p2p_test.tscn -- --host CODE N`, then `-- --join CODE N`.
 
 Limits enforced by the relay: 10 sockets per room, 768 KB per message (enough for a 12 s voice clip
 that a guest sends to the host's AI), and client-supplied `from` values are overwritten.

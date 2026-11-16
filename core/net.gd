@@ -4,6 +4,11 @@ extends Node
 # The relay only forwards JSON between up to 10 players in a room; all game
 # logic runs on the host's machine (world seed, riddle generation, round flow).
 #
+# On top of that, every pair of players tries a direct WebRTC data channel (full
+# mesh, signalled through the relay). While a pair has no open channel (still
+# connecting, NAT blocked it, no WebRTC on this build) their traffic goes through the
+# relay, so a failed P2P attempt never breaks a game; it only costs latency.
+#
 # Messages: every packet is a Dictionary with "t" (type). The relay adds "from".
 #   relay -> us : welcome{id, peers}, join{id,name}, leave{id}, error{msg}, host_left
 #   game        : start{seed, qtype, topic, round}, riddle{data}, hint{idx}, topic{topic},
@@ -36,6 +41,18 @@ var round_riddle := {}     # last riddle for this round (cached for late scene l
 var round_hints: Array = []  # hint idxs already taken this round
 var room_topic := ""       # topic the host picked for the next round (shown in the lobby)
 var _connecting_for := 0.0
+
+# Several public STUN servers: if one is down or blocked, ICE still finds our public address.
+const ICE_SERVERS := [{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302",
+	"stun:stun.cloudflare.com:3478"]}]
+const P2P_TIMEOUT := 12.0       # seconds to get a channel open before using the relay for that peer
+const P2P_MAX_BYTES := 60000    # bigger packets (voice clips) use the relay: Safari caps data-channel messages at 64 KB
+const RELAY_ONLY := ["welcome", "join", "leave", "error", "host_left", "rtc"]  # never accepted from a peer directly
+const P2P_TRIES := 3            # attempts per peer (a NAT that blocks P2P fails every time; retries fix blips)
+var rtc := {}                   # peer id -> {pc, ch, t (seconds connecting), open, go}
+var rtc_tries := {}             # peer id -> attempts made (only by the side that offers)
+var rtc_retry := {}             # peer id -> seconds until the next attempt
+var p2p_available := true       # false once WebRTC fails to start (desktop build without the extension)
 
 
 func _ready() -> void:
@@ -84,12 +101,49 @@ func _open(code: String, name: String, host: bool) -> void:
 func send(data: Dictionary, to: int = 0) -> void:
 	if ws == null or ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
 		return
+	var buf := JSON.stringify(data).to_utf8_buffer()
+	var small := buf.size() <= P2P_MAX_BYTES
 	if to != 0:
-		data["to"] = to
-	ws.send_text(JSON.stringify(data))
+		if small and is_direct(to):
+			rtc[to].ch.put_packet(buf)
+		else:
+			_relay(data, to)
+		return
+	var via_relay := []
+	for id in peers:
+		if id == my_id:
+			continue
+		if small and is_direct(id):
+			rtc[id].ch.put_packet(buf)
+		else:
+			via_relay.append(id)
+	if via_relay.size() == peers.size() - 1:
+		_relay(data)   # nobody is direct: one broadcast instead of one message per peer
+	else:
+		for id in via_relay:
+			_relay(data, id)
+
+
+func _relay(data: Dictionary, to: int = 0) -> void:
+	if ws == null or ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
+		return
+	var d := data.duplicate()
+	if to != 0:
+		d["to"] = to
+	ws.send_text(JSON.stringify(d))
+
+
+# Is this peer on a working direct WebRTC link? A link that ICE reports as disconnected
+# stops carrying traffic at once (to the relay) instead of when it finally fails.
+func is_direct(id: int) -> bool:
+	return rtc.has(id) and rtc[id].open and rtc[id].pc.get_connection_state() == WebRTCPeerConnection.STATE_CONNECTED
 
 
 func leave() -> void:
+	for id in rtc.keys():
+		_rtc_close(id)
+	rtc_tries.clear()
+	rtc_retry.clear()
 	if ws:
 		ws.close()
 	ws = null
@@ -122,6 +176,7 @@ func _process(delta: float) -> void:
 		var data = JSON.parse_string(ws.get_packet().get_string_from_utf8())
 		if typeof(data) == TYPE_DICTIONARY:
 			_handle(data)
+	_poll_rtc(delta)
 
 
 func _fail(reason: String) -> void:
@@ -143,11 +198,16 @@ func _handle(d: Dictionary) -> void:
 			peers[my_id] = player_name
 			peer_chars[my_id] = Global.character
 			print("[Net] joined room %s as #%d" % [room_code, my_id])
+			for id in peers:
+				_rtc_start(id)
 			send({"t": "hello", "c": Global.character})
 			connected.emit(my_id)
 		"join":
 			var id := int(d.id)
 			peers[id] = str(d.name)
+			_rtc_close(id)   # a reused id: drop any stale link
+			rtc_tries.erase(id)
+			_rtc_start(id)
 			send({"t": "hello", "c": Global.character}, id)   # tell the newcomer what I look like
 			if is_host() and not room_topic.is_empty():
 				send({"t": "topic", "topic": room_topic}, id)
@@ -160,12 +220,17 @@ func _handle(d: Dictionary) -> void:
 					send({"t": "hint", "idx": idx}, id)
 			peer_joined.emit(id, str(d.name))
 		"leave":
+			_rtc_close(int(d.id))
+			rtc_tries.erase(int(d.id))
+			rtc_retry.erase(int(d.id))
 			peers.erase(int(d.id))
 			peer_left.emit(int(d.id))
 		"error":
 			_fail(str(d.get("msg", "Relay error")))
 		"host_left":
 			_fail("The host left the room")
+		"rtc":
+			_on_rtc(int(d.get("from", 0)), d)
 		_:
 			var t := str(d.get("t", ""))
 			if t == "hello":
@@ -240,3 +305,112 @@ func host_start_round(topic: String, round_no: int, mode := "") -> void:
 	round_riddle = {}
 	round_hints = []
 	send(round_data.duplicate())
+
+
+# --- WebRTC peer-to-peer ------------------------------------------------------------------
+# The higher id of each pair offers (so offers never cross); the other side answers.
+# When a side's channel opens it sends "go" through the relay and switches to direct. The
+# receiver reads direct packets only after that "go": everything the sender put on the
+# relay before it has arrived by then, so switching paths never reorders messages.
+
+func _rtc_start(id: int) -> void:
+	if id >= my_id or not p2p_available:
+		return
+	rtc_tries[id] = int(rtc_tries.get(id, 0)) + 1
+	_rtc_open(id, true)
+
+
+func _rtc_open(id: int, offer: bool) -> void:
+	_rtc_close(id)
+	if not p2p_available or not peers.has(id):
+		return
+	var pc := WebRTCPeerConnection.new()
+	if pc.initialize({"iceServers": ICE_SERVERS}) != OK:
+		p2p_available = false
+		print("[Net] WebRTC unavailable on this build; using the relay only")
+		return
+	# Negotiated channel (same id on both sides): no data_channel_received dance, and it exists before the offer.
+	var ch := pc.create_data_channel("game", {"negotiated": true, "id": 1})
+	if ch == null:
+		pc.close()
+		return
+	pc.session_description_created.connect(_on_local_sdp.bind(id))
+	pc.ice_candidate_created.connect(_on_local_ice.bind(id))
+	rtc[id] = {"pc": pc, "ch": ch, "t": 0.0, "open": false, "go": false}
+	if offer:
+		pc.create_offer()
+
+
+func _rtc_close(id: int) -> void:
+	var r = rtc.get(id)
+	if r == null:
+		return
+	rtc.erase(id)
+	r.ch.close()
+	r.pc.close()
+
+
+func _on_local_sdp(type: String, sdp: String, id: int) -> void:
+	if rtc.has(id):
+		# Relay the SDP before applying it: applying it starts ICE, and candidates must not overtake it.
+		_relay({"t": "rtc", "k": type, "sdp": sdp}, id)
+		rtc[id].pc.set_local_description(type, sdp)
+
+
+func _on_local_ice(media: String, index: int, cand: String, id: int) -> void:
+	_relay({"t": "rtc", "k": "ice", "m": media, "i": index, "n": cand}, id)
+
+
+# Signalling from a peer, through the relay (which stamped the real sender).
+func _on_rtc(from: int, d: Dictionary) -> void:
+	var k := str(d.get("k", ""))
+	if k == "offer":
+		if from < my_id:
+			return   # not the offering side of this pair
+		_rtc_open(from, false)
+	var r = rtc.get(from)
+	if r == null:
+		return
+	match k:
+		"ice":
+			r.pc.add_ice_candidate(str(d.get("m", "")), int(d.get("i", 0)), str(d.get("n", "")))
+		"offer", "answer":
+			r.pc.set_remote_description(k, str(d.get("sdp", "")))   # an offer makes Godot create our answer
+		"go":
+			r.go = true
+
+
+func _poll_rtc(delta: float) -> void:
+	for id in rtc_retry.keys():
+		rtc_retry[id] -= delta
+		if rtc_retry[id] <= 0.0:
+			rtc_retry.erase(id)
+			if peers.has(id) and not rtc.has(id):
+				_rtc_start(id)
+	for id in rtc.keys():
+		if not rtc.has(id):   # closed while handling an earlier packet
+			continue
+		var r: Dictionary = rtc[id]
+		r.pc.poll()
+		var ch: WebRTCDataChannel = r.ch
+		if ch.get_ready_state() == WebRTCDataChannel.STATE_OPEN:
+			if not r.open:
+				_relay({"t": "rtc", "k": "go"}, id)   # before any direct packet (see above)
+				r.open = true
+				print("[Net] direct P2P link to #%d" % id)
+			while r.go and rtc.has(id) and ch.get_available_packet_count() > 0:
+				var data = JSON.parse_string(ch.get_packet().get_string_from_utf8())
+				if typeof(data) == TYPE_DICTIONARY and not (str(data.get("t", "")) in RELAY_ONLY):
+					data["from"] = id   # the channel itself proves the sender
+					_handle(data)
+			continue
+		r.t += delta
+		var state: int = r.pc.get_connection_state()
+		if r.open or r.t > P2P_TIMEOUT or state == WebRTCPeerConnection.STATE_FAILED or state == WebRTCPeerConnection.STATE_CLOSED:
+			_rtc_close(id)
+			# The offering side retries a few times (a blip, or a dropped link mid-game).
+			if id < my_id and int(rtc_tries.get(id, 0)) < P2P_TRIES:
+				rtc_retry[id] = 3.0
+				print("[Net] no direct link to #%d yet; relay meanwhile, retrying" % id)
+			else:
+				print("[Net] no direct link to #%d; using the relay" % id)

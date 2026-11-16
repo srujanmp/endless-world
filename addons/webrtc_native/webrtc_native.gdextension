@@ -1,0 +1,13 @@
+[configuration]
+
+entry_symbol = "webrtc_extension_init"
+compatibility_minimum = 4.3
+
+exclude_tags = ["web", "no-webrtc"]
+
+[libraries]
+
+; webrtc-native 1.2.2 (github.com/godotengine/webrtc-native). Only the Windows x86_64 builds are
+; vendored because the game exports Windows + Web (browsers have WebRTC built in).
+windows.debug.x86_64 = "lib/libwebrtc_native.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "lib/libwebrtc_native.windows.template_release.x86_64.dll"
