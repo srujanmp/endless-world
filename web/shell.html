@@ -6,7 +6,7 @@
 		<title>Endless Worlds</title>
 		<!-- The game's own loading page (export preset: html/custom_html_shell). Based on Godot's
 		     full-size shell: same engine start-up code, but the splash picture (tools/make_splash.py)
-		     with a pixel loading bar and tips instead of the Godot logo and a browser progress bar. -->
+		     with a pixel loading bar and tips about the ML behind the game instead of the Godot logo and a browser progress bar. -->
 		<style>
 @font-face {
 	font-family: 'Jersey';
@@ -176,14 +176,13 @@ const engine = new Engine(GODOT_CONFIG);
 	const tip = document.getElementById('tip');
 
 	const tips = [
-		'Find the well and answer its riddle to move on.',
-		'Lit lamps hold hints. Walk up and read them.',
-		'Stuck? Ask Bolt, your robot guide.',
-		'Survival mode hides behind the bug button on the Stats page.',
-		'In Survival, every level-up is a new perk.',
-		'Chain kills for a combo: more score, bonus coins.',
-		'Night pays better, and bites harder.',
-		'Play with friends: share a room code or an invite link.',
+		'Web search finds live pages about your topic.',
+		'RAG: the best passages are picked with FAISS vector search.',
+		'An LLM writes the riddle and its hints from those passages.',
+		'Every AI answer is checked before you see it.',
+		'Q-learning adapts the difficulty to how you play.',
+		'Speech-to-text turns your voice into questions for Bolt.',
+		'Bolt answers from the same sources, without spoiling the riddle.',
 	];
 	let tipIndex = Math.floor(Math.random() * tips.length);
 	tip.textContent = tips[tipIndex];
