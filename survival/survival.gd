@@ -233,7 +233,7 @@ func _ready() -> void:
 	ShaderWarmup.run(self)   # no shader-compile freezes later in play
 	_base_speed = player.speed
 	# depth-sort from the feet (the hero is drawn at 2x here), and keep the camera on the sea
-	player.depth_bias = 24.0 - (player.collider.shape as RectangleShape2D).extents.y
+	player.depth_bias = 14.0 - (player.collider.shape as RectangleShape2D).extents.y   # feet are 7 px below the origin (measured, tools/zstrip)
 	var cam: Camera2D = player.get_node("Camera2D")
 	cam.limit_left = 0
 	cam.limit_top = 0
